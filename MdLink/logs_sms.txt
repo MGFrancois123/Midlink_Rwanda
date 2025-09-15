@@ -1,0 +1,87 @@
+2025-08-28 16:55:58 SMS result: {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 16:56:31 SMS result: {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:05:19 TEST try sender='MDLINK-RW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:05:20 TEST try sender='HDEV' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:05:21 TEST try sender='MDLINK' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:05:22 TEST try sender='MDLINKRW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:05:22 TEST SMS to +250786980814 => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:06:14 TEST try sender='MDLINK-RW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:06:15 TEST try sender='HDEV' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:06:16 TEST try sender='MDLINK' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:06:17 TEST try sender='MDLINKRW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:06:18 TEST try sender='' => {"status":"error","message":"All Fields Are Required","link":""}
+2025-08-28 17:06:19 TEST try sender='HDEV-SMS' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:06:20 TEST try sender='HDEVTEST' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:06:20 TEST SMS to +250786980814 => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:07:32 SMS try sender='MDLINK-RW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:07:33 SMS try sender='HDEV' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:07:34 SMS try sender='MDLINK' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:07:35 SMS try sender='MDLINKRW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:07:36 SMS try sender='' => {"status":"error","message":"All Fields Are Required","link":""}
+2025-08-28 17:07:37 SMS try sender='HDEV-SMS' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:07:38 SMS try sender='HDEVTEST' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:10:30 TEST try sender='MDLINK-RW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:10:31 TEST try sender='HDEV' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:10:32 TEST try sender='MDLINK' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:10:33 TEST try sender='MDLINKRW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:10:34 TEST try sender='' => {"status":"error","message":"All Fields Are Required","link":""}
+2025-08-28 17:10:35 TEST try sender='HDEV-SMS' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:10:36 TEST try sender='HDEVTEST' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:10:36 TEST SMS to +250786980814 => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:14:04 TEST try sender='MDLINK-RW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:14:05 TEST try sender='HDEV' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:14:06 TEST try sender='MDLINK' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:14:07 TEST try sender='MDLINKRW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:14:08 TEST try sender='' => {"status":"error","message":"All Fields Are Required","link":""}
+2025-08-28 17:14:09 TEST try sender='HDEV-SMS' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:14:10 TEST try sender='HDEVTEST' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:14:11 TEST try sender='0786980814' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:14:11 TEST SMS to +250786980814 => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:22:46 SEND to +250786980814 sender='MDLINK-RW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:22:47 SEND to +250786980814 sender='HDEV' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:22:48 SEND to +250786980814 sender='MDLINK' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:22:49 SEND to +250786980814 sender='MDLINKRW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:22:50 SEND to +250786980814 sender='' => {"status":"error","message":"All Fields Are Required","link":""}
+2025-08-28 17:22:51 SEND to +250786980814 sender='HDEV-SMS' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:22:52 SEND to +250786980814 sender='MDLINK-RW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:22:53 SEND to +250786980814 sender='HDEVTEST' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:22:53 SEND to +250786980814 sender='HDEV' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:22:54 SEND to +250786980814 sender='0786980814' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:22:54 SEND to +250786980814 sender='MDLINK' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:22:56 SEND to +250786980814 sender='MDLINKRW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:22:56 SEND to +250786980814 sender='' => {"status":"error","message":"All Fields Are Required","link":""}
+2025-08-28 17:22:58 SEND to +250786980814 sender='HDEV-SMS' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:22:59 SEND to +250786980814 sender='HDEVTEST' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:00 SEND to +250786980814 sender='0786980814' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:23 SEND to +250796678252 sender='MDLINK-RW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:24 SEND to +250796678252 sender='HDEV' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:25 SEND to +250796678252 sender='MDLINK' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:26 SEND to +250796678252 sender='MDLINKRW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:27 SEND to +250796678252 sender='' => {"status":"error","message":"All Fields Are Required","link":""}
+2025-08-28 17:23:28 SEND to +250796678252 sender='HDEV-SMS' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:29 SEND to +250796678252 sender='HDEVTEST' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:30 SEND to +250796678252 sender='MDLINK-RW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:30 SEND to +250796678252 sender='0786980814' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:31 SEND to +250796678252 sender='HDEV' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:32 SEND to +250796678252 sender='MDLINK' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:33 SEND to +250796678252 sender='MDLINKRW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:34 SEND to +250796678252 sender='' => {"status":"error","message":"All Fields Are Required","link":""}
+2025-08-28 17:23:36 SEND to +250796678252 sender='HDEV-SMS' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:37 SEND to +250796678252 sender='HDEVTEST' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-28 17:23:38 SEND to +250796678252 sender='0786980814' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:07 SMS try to +250786980814 sender='MDLINK-RW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:09 SMS try to +250786980814 sender='HDEV' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:10 SMS try to +250786980814 sender='MDLINK' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:12 SMS try to +250786980814 sender='MDLINKRW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:14 SMS try to +250786980814 sender='' => {"status":"error","message":"All Fields Are Required","link":""}
+2025-08-29 16:21:15 SMS try to +250786980814 sender='HDEV-SMS' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:16 SMS try to +250786980814 sender='HDEVTEST' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:17 SMS try to +250786980814 sender='0786980814' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:18 SMS try to +250796678252 sender='MDLINK-RW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:19 SMS try to +250796678252 sender='HDEV' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:20 SMS try to +250796678252 sender='MDLINK' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:22 SMS try to +250796678252 sender='MDLINKRW' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:23 SMS try to +250796678252 sender='' => {"status":"error","message":"All Fields Are Required","link":""}
+2025-08-29 16:21:24 SMS try to +250796678252 sender='HDEV-SMS' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:25 SMS try to +250796678252 sender='HDEVTEST' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}
+2025-08-29 16:21:26 SMS try to +250796678252 sender='0786980814' => {"status":"error","message":"Sender ID Not Valid with this user account","link":""}

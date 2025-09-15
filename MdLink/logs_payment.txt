@@ -1,0 +1,22 @@
+[2025-08-29 09:12:24] INIT telIn=0786980814 telNorm=2500786980814 amount=50 tx_ref=TX202508291756451526635
+[2025-08-29 09:12:26] RESP tx_ref=TX202508291756451526635 raw={"status":"error","message":"Invalid Phone Number","link":""}
+[2025-08-29 09:12:41] INIT telIn=0786980814 telNorm=2500786980814 amount=50 tx_ref=TX202508291756451526635
+[2025-08-29 09:12:42] RESP tx_ref=TX202508291756451526635 raw={"status":"error","message":"Invalid Phone Number","link":""}
+[2025-08-29 09:14:10] INIT telIn=0786980814 telNorm=250786980814 amount=1000 tx_ref=TX202508291756451639197
+[2025-08-29 09:14:13] RESP tx_ref=TX202508291756451639197 raw={"status":"success","message":"Transaction Accepted by HDEV, Waiting for Telco & user Confirmation","link":""}
+[2025-08-29 09:14:56] INIT telIn=0786980814 telNorm=250786980814 amount=10 tx_ref=TX202508291756451639197
+[2025-08-29 09:14:58] RESP tx_ref=TX202508291756451639197 raw={"status":"error","message":"Transaction Reference Already Exist","link":""}
+[2025-08-29 09:15:16] INIT telIn=0786980814 telNorm=250786980814 amount=20 tx_ref=TX202508291756451639197
+[2025-08-29 09:15:17] RESP tx_ref=TX202508291756451639197 raw={"status":"error","message":"Transaction Reference Already Exist","link":""}
+[2025-08-29 09:15:50] INIT telIn=0786980814 telNorm=250786980814 amount=20 tx_ref=TX202508291756451639197
+[2025-08-29 09:15:51] RESP tx_ref=TX202508291756451639197 raw={"status":"error","message":"Transaction Reference Already Exist","link":""}
+[2025-08-29 09:16:01] INIT telIn=0786980814 telNorm=250786980814 amount=2000 tx_ref=TX202508291756451639197
+[2025-08-29 09:16:02] RESP tx_ref=TX202508291756451639197 raw={"status":"error","message":"Transaction Reference Already Exist","link":""}
+[2025-08-29 09:16:32] INIT telIn=0786980814 telNorm=250786980814 amount=1000 tx_ref=TX202508291756451639197
+[2025-08-29 09:16:34] RESP tx_ref=TX202508291756451639197 raw={"status":"error","message":"Transaction Reference Already Exist","link":""}
+[2025-08-29 09:21:44] INIT telIn=0786980814 telNorm=250786980814 amount=20 tx_ref=TX202508291756452087077
+[2025-08-29 09:21:47] RESP1 tx_ref=TX202508291756452087077 raw={"status":"success","message":"Transaction Accepted by HDEV, Waiting for Telco & user Confirmation","link":""}
+[2025-08-29 09:25:00] INIT telIn=0792021423 telNorm=250792021423 amount=100 tx_ref=TX202508291756452087077
+[2025-08-29 09:25:02] RESP1 tx_ref=TX202508291756452087077 raw={"status":"error","message":"Transaction Reference Already Exist","link":""}
+[2025-08-29 09:25:37] INIT telIn=0796678252 telNorm=250796678252 amount=100 tx_ref=TX202508291756452087077
+[2025-08-29 09:25:39] RESP1 tx_ref=TX202508291756452087077 raw={"status":"error","message":"Transaction Reference Already Exist","link":""}

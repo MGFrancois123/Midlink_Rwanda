@@ -1,0 +1,100 @@
+🔧 HDEV SMS Setup Instructions for MdLink Pharmacy System
+================================================================
+
+PROBLEM: "Sender ID Not Valid with this user account"
+SOLUTION: Get sender IDs approved by HDEV
+
+📞 CONTACT HDEV SUPPORT:
+------------------------
+Email: info@hdevtech.cloud
+Website: https://sms-api.hdev.rw
+Phone: Contact via email for phone support
+
+📝 WHAT TO REQUEST:
+------------------
+Subject: "Sender ID Approval Request for SMS API Account"
+
+Message Template:
+"Hello HDEV Support,
+
+I am using your SMS API for my pharmacy management system (MdLink Rwanda) and need to get sender IDs approved for my account.
+
+My API Credentials:
+- API ID: HDEV-23fb1b59-aec0-4aef-a351-bfc1c3aa3c52-ID
+- API Key: HDEV-6e36c286-19bb-4b45-838e-8b5cd0240857-KEY
+
+Please approve the following sender IDs for my account:
+1. INEZA (Primary - for Ineza Pharmacy)
+2. PHARMACY (Generic pharmacy messages)
+3. HEALTH (Health-related notifications)
+4. ALERT (Urgent alerts)
+5. INFO (Information messages)
+
+Use Case: Pharmacy management system for:
+- Medicine expiry alerts
+- Stock notifications
+- Appointment reminders
+- Patient notifications
+
+Please let me know:
+1. Which sender IDs can be approved
+2. Any documentation/registration required
+3. Processing time for approval
+4. Any fees involved
+
+Thank you for your assistance.
+
+Best regards,
+[Your Name]
+[Your Pharmacy/Organization Name]"
+
+🚀 RECOMMENDED SENDER IDs TO REQUEST:
+------------------------------------
+1. INEZA          (Your pharmacy name)
+2. PHARMACY       (Generic pharmacy)
+3. HEALTH         (Health services)
+4. ALERT          (Urgent alerts)
+5. INFO           (General information)
+6. REMINDER       (Appointment reminders)
+7. MDLINK         (Your system name)
+
+📋 REQUIRED INFORMATION:
+-----------------------
+- Business registration documents
+- Pharmacy license
+- Purpose of SMS usage
+- Expected message volume
+- Contact information
+
+⏱️ EXPECTED TIMELINE:
+--------------------
+- Response: 1-3 business days
+- Approval: 3-7 business days (varies)
+- Testing: Immediate after approval
+
+💡 TEMPORARY WORKAROUND:
+-----------------------
+Until sender IDs are approved, you can:
+1. Use the system without SMS (disable SMS features)
+2. Test with a different SMS provider
+3. Use email notifications instead of SMS
+
+🔧 AFTER APPROVAL:
+------------------
+1. Update includes/sms_config.php with approved sender IDs
+2. Test SMS functionality
+3. Enable SMS features in the system
+
+📞 FOLLOW UP:
+------------
+If no response within 3 business days, follow up via:
+- Same email address
+- Their website contact form
+- Social media (if available)
+
+💰 ACCOUNT BALANCE:
+------------------
+Also ensure your HDEV account has sufficient balance for SMS sending.
+Check your account dashboard at: https://sms-api.hdev.rw
+
+

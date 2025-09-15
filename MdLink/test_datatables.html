@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataTables Test</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap4.min.css"/>
+    
+    <style>
+        body { padding: 20px; }
+        #status { margin: 20px 0; padding: 10px; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DataTables Test Page</h1>
+        <div id="status">Initializing test...</div>
+        
+        <h3>Test Data Table</h3>
+        <table id="testTable" class="table table-striped table-bordered" style="width:100%">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>Test Medicine 1</td>
+                    <td>Test Category</td>
+                    <td>10.50</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Test Medicine 2</td>
+                    <td>Test Category</td>
+                    <td>15.75</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- DataTables JS -->
+    <script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            const statusEl = $('#status');
+            
+            // Check if jQuery is loaded
+            if (typeof jQuery == 'undefined') {
+                statusEl.html('<strong>Error:</strong> jQuery is not loaded!').addClass('error');
+                return;
+            }
+            
+            // Check if DataTables is loaded
+            if (typeof $.fn.DataTable === 'undefined') {
+                statusEl.html('<strong>Error:</strong> DataTables is not loaded!').addClass('error');
+                return;
+            }
+            
+            statusEl.html('jQuery and DataTables are loaded. Initializing test table...').addClass('success');
+            
+            // Initialize DataTable
+            try {
+                const table = $('#testTable').DataTable({
+                    responsive: true,
+                    paging: true,
+                    searching: true,
+                    ordering: true
+                });
+                
+                statusEl.html('DataTables is working correctly!').addClass('success');
+                console.log('DataTables version:', $.fn.DataTable.version);
+                
+            } catch (e) {
+                statusEl.html('<strong>Error initializing DataTable:</strong> ' + e.message).addClass('error');
+                console.error('DataTable error:', e);
+            }
+            
+            // Test AJAX call to our test endpoint
+            $.ajax({
+                url: 'actions/test_datatables.php',
+                type: 'POST',
+                dataType: 'json',
+                data: { draw: 1, start: 0, length: 10 },
+                success: function(response) {
+                    console.log('AJAX test successful:', response);
+                    statusEl.html(
+                        statusEl.html() + 
+                        '<br>AJAX test successful! Check console for response.'
+                    );
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX test failed:', { status: status, error: error, response: xhr.responseText });
+                    statusEl.html(
+                        statusEl.html() + 
+                        '<br><strong>AJAX test failed:</strong> ' + status + 
+                        '<br>Check console for details.'
+                    ).addClass('error');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
