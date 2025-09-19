@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dropdown Display</title>
+    <style>
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .selection-display {
+            border: 3px solid #ff8c00 !important;
+            background: linear-gradient(135deg, #fff8f0 0%, #ffeaa7 100%) !important;
+            color: #d63031 !important;
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+        .selection-display.has-value {
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%) !important;
+            border-color: #28a745 !important;
+            color: #155724 !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Dropdown Display Functionality</h1>
+    
+    <div class="form-group">
+        <label>Test Category:</label>
+        <select class="form-control" id="test_category">
+            <option value="">~~ SELECT CATEGORY ~~</option>
+            <option value="1">Anti-infectives</option>
+            <option value="2">Antibiotics</option>
+            <option value="3">Pain Relief</option>
+        </select>
+        <input type="text" class="form-control selection-display" id="test_category_display" 
+               placeholder="Selected category will appear here" readonly/>
+    </div>
+    
+    <div class="form-group">
+        <label>Test Medicine:</label>
+        <select class="form-control" id="test_medicine">
+            <option value="">~~ SELECT MEDICINE ~~</option>
+            <option value="1" data-description="Treats bacterial infections">Amoxicillin</option>
+            <option value="2" data-description="Pain relief medication">Paracetamol</option>
+            <option value="3" data-description="Antibiotic for infections">Ciprofloxacin</option>
+        </select>
+        <input type="text" class="form-control selection-display" id="test_medicine_display" 
+               placeholder="Selected medicine will appear here" readonly/>
+    </div>
+    
+    <div class="form-group">
+        <label>Test Input:</label>
+        <input type="text" class="form-control" id="test_input" placeholder="Type something here"/>
+        <input type="text" class="form-control selection-display" id="test_input_display" 
+               placeholder="Entered text will appear here" readonly/>
+    </div>
+
+    <script>
+        console.log('=== TEST PAGE LOADED ===');
+        
+        // Test category dropdown
+        var testCategory = document.getElementById('test_category');
+        var testCategoryDisplay = document.getElementById('test_category_display');
+        
+        console.log('Test category element:', testCategory);
+        console.log('Test category display element:', testCategoryDisplay);
+        
+        if (testCategory && testCategoryDisplay) {
+            testCategory.addEventListener('change', function() {
+                console.log('Category changed! Value:', this.value);
+                var selectedOption = this.options[this.selectedIndex];
+                var categoryName = selectedOption ? selectedOption.textContent : '';
+                console.log('Category name:', categoryName);
+                
+                testCategoryDisplay.value = categoryName || '';
+                
+                if (categoryName && categoryName !== '~~ SELECT CATEGORY ~~') {
+                    testCategoryDisplay.classList.add('has-value');
+                    console.log('Applied green styling');
+                } else {
+                    testCategoryDisplay.classList.remove('has-value');
+                    console.log('Applied orange styling');
+                }
+            });
+            console.log('Category event listener added successfully');
+        } else {
+            console.error('Category elements not found!');
+        }
+        
+        // Test medicine dropdown
+        var testMedicine = document.getElementById('test_medicine');
+        var testMedicineDisplay = document.getElementById('test_medicine_display');
+        
+        if (testMedicine && testMedicineDisplay) {
+            testMedicine.addEventListener('change', function() {
+                console.log('Medicine changed! Value:', this.value);
+                var selectedOption = this.options[this.selectedIndex];
+                var medicineName = selectedOption ? selectedOption.textContent : '';
+                console.log('Medicine name:', medicineName);
+                
+                testMedicineDisplay.value = medicineName || '';
+                
+                if (medicineName && medicineName !== '~~ SELECT MEDICINE ~~') {
+                    testMedicineDisplay.classList.add('has-value');
+                    console.log('Applied green styling to medicine');
+                } else {
+                    testMedicineDisplay.classList.remove('has-value');
+                    console.log('Applied orange styling to medicine');
+                }
+            });
+            console.log('Medicine event listener added successfully');
+        } else {
+            console.error('Medicine elements not found!');
+        }
+        
+        // Test input field
+        var testInput = document.getElementById('test_input');
+        var testInputDisplay = document.getElementById('test_input_display');
+        
+        if (testInput && testInputDisplay) {
+            testInput.addEventListener('input', function() {
+                console.log('Input changed! Value:', this.value);
+                testInputDisplay.value = this.value || '';
+                
+                if (this.value) {
+                    testInputDisplay.classList.add('has-value');
+                    console.log('Applied green styling to input');
+                } else {
+                    testInputDisplay.classList.remove('has-value');
+                    console.log('Applied orange styling to input');
+                }
+            });
+            console.log('Input event listener added successfully');
+        } else {
+            console.error('Input elements not found!');
+        }
+        
+        console.log('=== ALL EVENT LISTENERS SETUP COMPLETE ===');
+    </script>
+</body>
+</html>

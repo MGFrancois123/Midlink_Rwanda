@@ -1,6 +1,8 @@
 <?php
 // Lightweight router to map old placeholder links to real pages (super-admin mode)
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Always ensure connect/check are available if needed later
 @include_once __DIR__ . '/constant/connect.php';

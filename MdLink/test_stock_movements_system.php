@@ -1,6 +1,8 @@
 <?php
 // Test Stock Movements with full system integration
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Set up a test session to bypass authentication
 $_SESSION['userId'] = 1;

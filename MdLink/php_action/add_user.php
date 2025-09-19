@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once '../constant/connect.php';
 
 header('Content-Type: application/json');
@@ -19,8 +21,7 @@ try {
         $password = $_POST['password'] ?? '';
         $confirm_password = $_POST['confirm_password'] ?? '';
         $phone = trim($connect->real_escape_string($_POST['phone'] ?? ''));
-        $role = trim($connect->real_escape_string($_POST['role'] ?? ''));
-        $notes = trim($connect->real_escape_string($_POST['notes'] ?? ''));
+        $status = trim($connect->real_escape_string($_POST['status'] ?? 'active'));
 
         // Validation
         $errors = [];
@@ -53,11 +54,9 @@ try {
             $errors[] = 'Passwords do not match';
         }
 
-        // Role validation
-        if (empty($role)) {
-            $errors[] = 'User role is required';
-        } elseif (!in_array($role, ['super_admin', 'admin', 'staff'])) {
-            $errors[] = 'Invalid user role selected';
+        // Status validation
+        if (!empty($status) && !in_array($status, ['active', 'disabled'])) {
+            $errors[] = 'Invalid status selected';
         }
 
         // Phone validation (optional)
@@ -104,14 +103,14 @@ try {
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
             
             // Insert user
-            $user_sql = "INSERT INTO admin_users (username, password_hash, role, email, phone, status, created_at) VALUES (?, ?, ?, ?, ?, 'active', NOW())";
+            $user_sql = "INSERT INTO admin_users (username, password_hash, email, phone, status, created_at) VALUES (?, ?, ?, ?, ?, NOW())";
             $user_stmt = $connect->prepare($user_sql);
             
             if (!$user_stmt) {
                 throw new Exception('Database error: ' . $connect->error);
             }
 
-            $user_stmt->bind_param("sssss", $username, $password_hash, $role, $email, $phone);
+            $user_stmt->bind_param("sssss", $username, $password_hash, $email, $phone, $status);
 
             if (!$user_stmt->execute()) {
                 throw new Exception('Failed to create user: ' . $user_stmt->error);
@@ -121,13 +120,17 @@ try {
             $user_stmt->close();
 
             // Log the user creation
-            $log_sql = "INSERT INTO audit_logs (user_id, action, details, ip_address, created_at) VALUES (?, 'user_created', ?, ?, NOW())";
+            $log_sql = "INSERT INTO audit_logs (admin_id, table_name, record_id, action, new_data, action_time) VALUES (?, 'admin_users', ?, 'CREATE', ?, NOW())";
             $log_stmt = $connect->prepare($log_sql);
             
             if ($log_stmt) {
-                $log_details = "Created user: {$username} ({$role})";
-                $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-                $log_stmt->bind_param("iss", $_SESSION['userId'], $log_details, $ip_address);
+                $log_data = json_encode([
+                    'username' => $username,
+                    'email' => $email,
+                    'status' => $status,
+                    'phone' => $phone
+                ]);
+                $log_stmt->bind_param("iis", $_SESSION['userId'], $user_id, $log_data);
                 $log_stmt->execute();
                 $log_stmt->close();
             }
@@ -142,7 +145,7 @@ try {
                 'user_id' => $user_id,
                 'username' => $username,
                 'email' => $email,
-                'role' => $role
+                'status' => $status
             );
 
         } catch (Exception $e) {

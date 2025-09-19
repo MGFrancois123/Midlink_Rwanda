@@ -3,7 +3,9 @@ header('Content-Type: application/json');
 require_once '../constant/connect.php';
 
 if (session_status() === PHP_SESSION_NONE) { 
-    session_start(); 
+    if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+} 
 }
 
 if (!isset($_SESSION['adminId'])) {

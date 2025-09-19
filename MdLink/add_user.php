@@ -1,613 +1,657 @@
 <?php 
-include('./constant/check.php'); 
-include('./constant/layout/head.php');
-include('./constant/layout/header.php');
-include('./constant/layout/sidebar.php');
-include('./constant/connect.php');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once './constant/connect.php';
+require_once './constant/check.php';
 
-// Get existing users for the list
-$users_sql = "SELECT admin_id, username, role, email, phone, created_at 
-              FROM admin_users 
-              ORDER BY admin_id DESC";
-$users_result = $connect->query($users_sql);
+// Check if user is super admin
+if (!isset($_SESSION['userRole']) || $_SESSION['userRole'] !== 'super_admin') { 
+    header('Location: dashboard.php'); 
+    exit; 
+}
 
 // Get statistics
-$stats = [];
-$stats['total'] = $users_result->num_rows;
-$stats['super_admin'] = $connect->query("SELECT COUNT(*) as count FROM admin_users WHERE role = 'super_admin'")->fetch_assoc()['count'];
-$stats['admin'] = $connect->query("SELECT COUNT(*) as count FROM admin_users WHERE role = 'admin'")->fetch_assoc()['count'];
-$stats['staff'] = $connect->query("SELECT COUNT(*) as count FROM admin_users WHERE role = 'staff'")->fetch_assoc()['count'];
+$stats = [
+    'total_users' => 0,
+    'active_users' => 0,
+    'recent_users' => 0
+];
+
+try {
+    $total_query = $connect->query("SELECT COUNT(*) as count FROM admin_users");
+    if ($total_query) $stats['total_users'] = (int)$total_query->fetch_assoc()['count'];
+    
+    $active_query = $connect->query("SELECT COUNT(*) as count FROM admin_users WHERE status = 'active'");
+    if ($active_query) $stats['active_users'] = (int)$active_query->fetch_assoc()['count'];
+    
+    $recent_query = $connect->query("SELECT COUNT(*) as count FROM admin_users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    if ($recent_query) $stats['recent_users'] = (int)$recent_query->fetch_assoc()['count'];
+    
+} catch (Exception $e) {
+    $error_message = $e->getMessage();
+}
+
+// Get existing users for display
+$users = [];
+try {
+    $users_query = $connect->query("SELECT admin_id, username, email, phone, status, created_at FROM admin_users ORDER BY created_at DESC LIMIT 10");
+    if ($users_query) {
+        while ($row = $users_query->fetch_assoc()) {
+            $users[] = $row;
+        }
+    }
+} catch (Exception $e) {
+    // Handle error silently
+}
 ?>
+<?php include('./constant/layout/head.php');?>
+    <style>
+        :root {
+            --primary-color: #2f855a;
+            --secondary-color: #f8f9fa;
+            --accent-color: #e6f4ea;
+            --text-dark: #2d2d2d;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --gradient-primary: linear-gradient(135deg, #2f855a 0%, #276749 100%);
+            --gradient-secondary: linear-gradient(135deg, #4c51bf 0%, #667eea 100%);
+            --gradient-success: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
 
-<style>
-.page-wrapper { width: 100%; }
-.page-wrapper .container-fluid { width: 100%; max-width: 100%; padding-left: 15px; padding-right: 15px; }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
 
-.user-management-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 20px;
-    padding: 40px;
-    margin-bottom: 30px;
-    color: white;
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-}
+        .page-container {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
 
-.user-management-header h3 {
-    margin-bottom: 15px;
-    font-weight: 700;
-    font-size: 2.5rem;
-}
+        .page-header {
+            background: var(--gradient-primary);
+            color: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
 
-.user-management-header p {
-    opacity: 0.9;
-    margin-bottom: 0;
-    font-size: 1.1rem;
-}
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: float 6s ease-in-out infinite;
+        }
 
-.stats-card {
-    background: linear-gradient(135deg, #2e7d32, #4caf50);
-    color: white;
-    border-radius: 15px;
-    padding: 25px;
-    margin-bottom: 20px;
-    text-align: center;
-    box-shadow: 0 8px 25px rgba(46, 125, 50, 0.3);
-    transition: transform 0.3s ease;
-}
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
 
-.stats-card:hover {
-    transform: translateY(-5px);
-}
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
 
-.stat-item {
-    text-align: center;
-}
+        .page-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
 
-.stat-number {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin-bottom: 8px;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
 
-.stat-label {
-    font-size: 1rem;
-    opacity: 0.9;
-    font-weight: 500;
-}
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
 
-.form-card {
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-    border: none;
-    /* Allow native dropdowns to render outside card */
-    overflow: visible;
-}
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
 
-.form-card .card-header {
-    background: linear-gradient(135deg, #4caf50, #66bb6a);
-    color: white;
-    border: none;
-    padding: 25px 30px;
-    border-radius: 20px 20px 0 0;
-}
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+        }
 
-.form-card .card-header h5 {
-    margin: 0;
-    font-weight: 600;
-    font-size: 1.4rem;
-}
+        .stat-card.total::before { background: var(--gradient-secondary); }
+        .stat-card.active::before { background: var(--gradient-success); }
+        .stat-card.recent::before { background: var(--gradient-warning); }
 
-.form-card .card-body {
-    padding: 40px;
-}
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 1rem;
+        }
 
-.form-group {
-    margin-bottom: 25px;
-}
+        .stat-icon.total { background: var(--gradient-secondary); }
+        .stat-icon.active { background: var(--gradient-success); }
+        .stat-icon.recent { background: var(--gradient-warning); }
 
-.form-group label {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 8px;
-    font-size: 0.95rem;
-}
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0;
+        }
 
-.form-control {
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    padding: 12px 15px;
-    font-size: 0.95rem;
-    transition: all 0.3s ease;
-    height: auto;
-    color: #333;
-    background-color: #fff;
-    position: relative;
-    z-index: 1;
-}
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin: 0;
+        }
 
-.form-control:focus {
-    border-color: #4caf50;
-    box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25);
-    outline: none;
-}
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
 
-/* Ensure select dropdowns render above surrounding elements */
-select.form-control { position: relative; z-index: 2; background-color: #fff; color: #333; }
-select.form-control option { color: #333; background-color: #fff; }
+        .form-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
 
-.btn-primary {
-    background: linear-gradient(135deg, #4caf50, #66bb6a);
-    border: none;
-    border-radius: 10px;
-    padding: 12px 30px;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-}
+        .form-header {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
 
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-    background: linear-gradient(135deg, #45a049, #5cb85c);
-}
+        .form-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
 
-.btn-secondary {
-    background: linear-gradient(135deg, #6c757d, #868e96);
-    border: none;
-    border-radius: 10px;
-    padding: 12px 30px;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-}
+        .form-body {
+            padding: 2rem;
+        }
 
-.btn-secondary:hover {
-    transform: translateY(-2px);
-    background: linear-gradient(135deg, #5a6268, #6c757d);
-}
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
 
-.table-card {
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-    border: none;
-    overflow: hidden;
-    margin-top: 30px;
-}
+        .form-label {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
 
-.table-card .card-header {
-    background: linear-gradient(135deg, #2196f3, #42a5f5);
-    color: white;
-    border: none;
-    padding: 25px 30px;
-    border-radius: 20px 20px 0 0;
-}
+        .required {
+            color: #ef4444;
+        }
 
-.table-card .card-header h5 {
-    margin: 0;
-    font-weight: 600;
-    font-size: 1.4rem;
-}
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
 
-.table {
-    margin-bottom: 0;
-}
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(47, 133, 90, 0.1);
+        }
 
-.table thead th {
-    background: #f8f9fa;
-    border: none;
-    font-weight: 600;
-    color: #333;
-    padding: 15px;
-    font-size: 0.9rem;
-}
+        .form-text {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
 
-.table tbody td {
-    border: none;
-    padding: 15px;
-    vertical-align: middle;
-    border-bottom: 1px solid #f0f0f0;
-}
+        .btn-primary {
+            background: var(--gradient-primary);
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
 
-.table tbody tr:hover {
-    background-color: #f8f9fa;
-}
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
 
-.badge {
-    padding: 8px 12px;
-    border-radius: 20px;
-    font-weight: 500;
-    font-size: 0.8rem;
-}
+        .btn-secondary {
+            background: #6c757d;
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
 
-.badge-success {
-    background: linear-gradient(135deg, #4caf50, #66bb6a);
-    color: white;
-}
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
 
-.badge-warning {
-    background: linear-gradient(135deg, #ff9800, #ffb74d);
-    color: white;
-}
+        .users-list {
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
 
-.badge-info {
-    background: linear-gradient(135deg, #2196f3, #42a5f5);
-    color: white;
-}
+        .users-header {
+            background: var(--gradient-secondary);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
 
-.alert {
-    border: none;
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 25px;
-    font-weight: 500;
-}
+        .users-body {
+            padding: 1.5rem;
+        }
 
-.alert-success {
-    background: linear-gradient(135deg, #d4edda, #c3e6cb);
-    color: #155724;
-    border-left: 5px solid #4caf50;
-}
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.3s ease;
+        }
 
-.alert-danger {
-    background: linear-gradient(135deg, #f8d7da, #f5c6cb);
-    color: #721c24;
-    border-left: 5px solid #dc3545;
-}
+        .user-item:hover {
+            background-color: var(--accent-color);
+        }
 
-.required {
-    color: #dc3545;
-}
+        .user-item:last-child {
+            border-bottom: none;
+        }
 
-.form-text {
-    font-size: 0.85rem;
-    color: #6c757d;
-    margin-top: 5px;
-}
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 1rem;
+        }
 
-@media (max-width: 768px) {
-    .user-management-header {
-        padding: 25px 20px;
-    }
-    
-    .user-management-header h3 {
-        font-size: 2rem;
-    }
-    
-    .form-card .card-body {
-        padding: 25px;
-    }
-    
-    .stats-card {
-        margin-bottom: 15px;
-    }
-}
-</style>
+        .user-info {
+            flex: 1;
+        }
 
+        .user-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .user-email {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .user-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: none;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 1rem;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<?php include('./constant/layout/header.php');?>
+<?php include('./constant/layout/sidebar.php');?>
 <div class="page-wrapper">
-    <div class="container-fluid py-4">
+    <div class="container-fluid">
+        <div class="page-container">
         <!-- Page Header -->
-        <div class="user-management-header">
-            <h3><i class="fa fa-user-plus"></i> Add New User</h3>
-            <p>Create and manage user accounts for staff and administrators</p>
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fa fa-user-plus"></i> Add New User
+            </h1>
+            <p class="page-subtitle">
+                Create new admin users for the MdLink Rwanda system
+            </p>
         </div>
 
         <!-- Statistics Cards -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stat-item">
-                        <div class="stat-number"><?php echo $stats['total']; ?></div>
-                        <div class="stat-label">Total Users</div>
-                    </div>
+        <div class="stats-grid">
+            <div class="stat-card total">
+                <div class="stat-icon total">
+                    <i class="fa fa-users"></i>
                 </div>
+                <h3 class="stat-number"><?php echo number_format($stats['total_users']); ?></h3>
+                <p class="stat-label">Total Users</p>
             </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stat-item">
-                        <div class="stat-number"><?php echo $stats['super_admin']; ?></div>
-                        <div class="stat-label">Super Admins</div>
-                    </div>
+
+            <div class="stat-card active">
+                <div class="stat-icon active">
+                    <i class="fa fa-user-check"></i>
                 </div>
+                <h3 class="stat-number"><?php echo number_format($stats['active_users']); ?></h3>
+                <p class="stat-label">Active Users</p>
             </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stat-item">
-                        <div class="stat-number"><?php echo $stats['admin']; ?></div>
-                        <div class="stat-label">Administrators</div>
-                    </div>
+
+            <div class="stat-card recent">
+                <div class="stat-icon recent">
+                    <i class="fa fa-user-clock"></i>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stat-item">
-                        <div class="stat-number"><?php echo $stats['staff']; ?></div>
-                        <div class="stat-label">Staff Members</div>
-                    </div>
-                </div>
+                <h3 class="stat-number"><?php echo number_format($stats['recent_users']); ?></h3>
+                <p class="stat-label">Recent Users (30 days)</p>
             </div>
         </div>
 
-        <!-- Add User Form -->
-        <div class="row">
-            <div class="col-lg-8">
-                <div class="card form-card">
-                    <div class="card-header">
-                        <h5><i class="fa fa-user-plus"></i> User Information</h5>
-                    </div>
-                    <div class="card-body">
-                        <form id="addUserForm">
-                            <div id="userMessage"></div>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="username"><i class="fa fa-user"></i> Username <span class="required">*</span></label>
-                                        <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" required>
-                                        <div class="form-text">Choose a unique username for login</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="email"><i class="fa fa-envelope"></i> Email Address <span class="required">*</span></label>
-                                        <input type="email" class="form-control" id="email" name="email" placeholder="user@example.com" required>
-                                        <div class="form-text">Valid email address for notifications</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="password"><i class="fa fa-lock"></i> Password <span class="required">*</span></label>
-                                        <input type="password" class="form-control" id="password" name="password" placeholder="Minimum 8 characters" required>
-                                        <div class="form-text">Password must be at least 8 characters long</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="confirm_password"><i class="fa fa-lock"></i> Confirm Password <span class="required">*</span></label>
-                                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm password" required>
-                                        <div class="form-text">Re-enter the password to confirm</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="phone"><i class="fa fa-phone"></i> Phone Number</label>
-                                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="+250 788 XXX XXX">
-                                        <div class="form-text">Optional: Contact phone number</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="role"><i class="fa fa-shield"></i> User Role <span class="required">*</span></label>
-                                        <select class="form-control" id="role" name="role" required>
-                                            <option value="" disabled selected hidden>Select Role</option>
-                                            <option value="super_admin">Super Administrator</option>
-                                            <option value="admin">Administrator</option>
-                                            <option value="staff">Staff Member</option>
-                                        </select>
-                                        <div class="form-text">Choose the appropriate role for this user</div>
-                                    </div>
-                                </div>
-                            </div>
-
-
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label for="notes"><i class="fa fa-sticky-note"></i> Notes</label>
-                                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Additional notes about this user (optional)"></textarea>
-                                        <div class="form-text">Any additional information about this user</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-12 text-right">
-                                    <button type="button" class="btn btn-secondary mr-2" id="btnReset">
-                                        <i class="fa fa-refresh"></i> Reset Form
-                                    </button>
-                                    <button type="submit" class="btn btn-primary" id="btnAddUser">
-                                        <i class="fa fa-user-plus"></i> Add User
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
+        <!-- Content Grid -->
+        <div class="content-grid">
+            <!-- Add User Form -->
+            <div class="form-card">
+                <div class="form-header">
+                    <i class="fa fa-user-plus"></i>
+                    <h3 class="form-title">User Information</h3>
                 </div>
-            </div>
-
-            <!-- Quick Stats Sidebar -->
-            <div class="col-lg-4">
-                <div class="card form-card">
-                    <div class="card-header">
-                        <h5><i class="fa fa-info-circle"></i> Quick Information</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-info">
-                            <h6><i class="fa fa-lightbulb-o"></i> User Roles</h6>
-                            <ul class="mb-0">
-                                <li><strong>Super Administrator:</strong> Full system access</li>
-                                <li><strong>Administrator:</strong> Management access</li>
-                                <li><strong>Staff Member:</strong> Basic operational access</li>
-                            </ul>
-                        </div>
+                <div class="form-body">
+                    <form id="addUserForm">
+                        <div id="userMessage"></div>
                         
-                        <div class="alert alert-success">
-                            <h6><i class="fa fa-check-circle"></i> Requirements</h6>
-                            <ul class="mb-0">
-                                <li>Username must be unique</li>
-                                <li>Email must be valid and unique</li>
-                                <li>Password minimum 8 characters</li>
-                                <li>All required fields must be filled</li>
-                            </ul>
+                        <div class="form-group">
+                            <label for="username" class="form-label">
+                                <i class="fa fa-user"></i> Username <span class="required">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" required>
+                            <div class="form-text">Choose a unique username for login</div>
                         </div>
-                    </div>
+
+                        <div class="form-group">
+                            <label for="email" class="form-label">
+                                <i class="fa fa-envelope"></i> Email Address <span class="required">*</span>
+                            </label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="user@example.com" required>
+                            <div class="form-text">Valid email address for notifications</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password" class="form-label">
+                                <i class="fa fa-lock"></i> Password <span class="required">*</span>
+                            </label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Minimum 8 characters" required>
+                            <div class="form-text">Password must be at least 8 characters long</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirm_password" class="form-label">
+                                <i class="fa fa-lock"></i> Confirm Password <span class="required">*</span>
+                            </label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm password" required>
+                            <div class="form-text">Re-enter the password to confirm</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="phone" class="form-label">
+                                <i class="fa fa-phone"></i> Phone Number
+                            </label>
+                            <input type="tel" class="form-control" id="phone" name="phone" placeholder="+250 788 XXX XXX">
+                            <div class="form-text">Optional: Contact phone number</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="role" class="form-label">
+                                <i class="fa fa-user-tag"></i> User Role <span class="required">*</span>
+                            </label>
+                            <select class="form-control" id="role" name="role" required>
+                                <option value="">Select user role</option>
+                                <option value="admin">Admin</option>
+                                <option value="user">User</option>
+                            </select>
+                            <div class="form-text">Select the appropriate role for this user</div>
+                        </div>
+
+                        <button type="submit" class="btn-primary">
+                            <i class="fa fa-user-plus"></i> Add User
+                        </button>
+                        <button type="button" class="btn-secondary" onclick="clearForm()">
+                            <i class="fa fa-refresh"></i> Clear Form
+                        </button>
+                    </form>
                 </div>
             </div>
-        </div>
 
-        <!-- Users List -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card table-card">
-                    <div class="card-header">
-                        <h5><i class="fa fa-users"></i> Existing Users</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Username</th>
-                                        <th>Email</th>
-                                        <th>Role</th>
-                                        <th>Phone</th>
-                                        <th>Created</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if ($users_result && $users_result->num_rows > 0): ?>
-                                        <?php while ($user = $users_result->fetch_assoc()): ?>
-                                            <tr>
-                                                <td><?php echo $user['admin_id']; ?></td>
-                                                <td><strong><?php echo htmlspecialchars($user['username']); ?></strong></td>
-                                                <td><?php echo htmlspecialchars($user['email']); ?></td>
-                                                <td>
-                                                    <?php if ($user['role'] == 'super_admin'): ?>
-                                                        <span class="badge badge-success">Super Admin</span>
-                                                    <?php elseif ($user['role'] == 'admin'): ?>
-                                                        <span class="badge badge-info">Administrator</span>
-                                                    <?php elseif ($user['role'] == 'staff'): ?>
-                                                        <span class="badge badge-warning">Staff Member</span>
-                                                    <?php else: ?>
-                                                        <span class="badge badge-secondary"><?php echo ucfirst($user['role']); ?></span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td><?php echo $user['phone'] ? htmlspecialchars($user['phone']) : 'N/A'; ?></td>
-                                                <td><?php echo date('M d, Y', strtotime($user['created_at'])); ?></td>
-                                                <td><span class="badge badge-success">Active</span></td>
-                                            </tr>
-                                        <?php endwhile; ?>
-                                    <?php else: ?>
-                                        <tr>
-                                            <td colspan="7" class="text-center text-muted">No users found</td>
-                                        </tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
+            <!-- Recent Users List -->
+            <div class="users-list">
+                <div class="users-header">
+                    <i class="fa fa-users"></i>
+                    <h3 class="form-title">Recent Users</h3>
+                </div>
+                <div class="users-body">
+                    <?php if (!empty($users)): ?>
+                        <?php foreach ($users as $user): ?>
+                            <div class="user-item">
+                                <div class="user-avatar">
+                                    <?php echo strtoupper(substr($user['username'], 0, 1)); ?>
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name"><?php echo htmlspecialchars($user['username']); ?></div>
+                                    <div class="user-email"><?php echo htmlspecialchars($user['email']); ?></div>
+                                </div>
+                                <div class="user-status status-<?php echo $user['status']; ?>">
+                                    <?php echo ucfirst($user['status']); ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="empty-state">
+                            <i class="fa fa-users"></i>
+                            <p>No users found</p>
                         </div>
-                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<?php include('./constant/layout/footer.php'); ?>
-
-<script>
-$(document).ready(function() {
-    // Form validation
-    $('#addUserForm').on('submit', function(e) {
-        e.preventDefault();
-        
-        const form = this;
-        const formData = new FormData(form);
-        const btn = $('#btnAddUser');
-        
-        // Basic validation
-        const password = $('#password').val();
-        const confirmPassword = $('#confirm_password').val();
-        
-        if (password !== confirmPassword) {
-            showMessage('Passwords do not match!', 'danger');
-            return;
-        }
-        
-        if (password.length < 8) {
-            showMessage('Password must be at least 8 characters long!', 'danger');
-            return;
-        }
-        
-        // Disable button and show loading
-        btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Adding User...');
-        
-        // Submit form
-        $.ajax({
-            url: 'php_action/add_user.php',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
+    <script>
+        document.getElementById('addUserForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const messageDiv = document.getElementById('userMessage');
+            
+            // Validate passwords match
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirm_password');
+            
+            if (password !== confirmPassword) {
+                showMessage('Passwords do not match!', 'error');
+                return;
+            }
+            
+            // Validate password length
+            if (password.length < 8) {
+                showMessage('Password must be at least 8 characters long!', 'error');
+                return;
+            }
+            
+            // Show loading
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Adding User...';
+            
+            // Submit form
+            fetch('php_action/add_user.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
                     showMessage('User added successfully!', 'success');
-                    form.reset();
-                    // Reload page after 2 seconds to show updated list
-                    setTimeout(function() {
+                    this.reset();
+                    // Optionally reload the page to show new user
+                    setTimeout(() => {
                         location.reload();
                     }, 2000);
                 } else {
-                    showMessage(response.message || 'Failed to add user. Please try again.', 'danger');
+                    showMessage(data.message || 'Error adding user', 'error');
                 }
-            },
-            error: function() {
-                showMessage('An error occurred. Please try again.', 'danger');
-            },
-            complete: function() {
-                btn.prop('disabled', false).html('<i class="fa fa-user-plus"></i> Add User');
-            }
+            })
+            .catch(error => {
+                showMessage('Network error occurred', 'error');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
         });
-    });
-    
-    // Reset form
-    $('#btnReset').on('click', function() {
-        $('#addUserForm')[0].reset();
-        $('#userMessage').html('');
-    });
-    
-    // Password confirmation validation
-    $('#confirm_password').on('input', function() {
-        const password = $('#password').val();
-        const confirmPassword = $(this).val();
         
-        if (confirmPassword && password !== confirmPassword) {
-            $(this).addClass('is-invalid');
-        } else {
-            $(this).removeClass('is-invalid');
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('userMessage');
+            messageDiv.innerHTML = `
+                <div class="alert alert-${type}">
+                    <i class="fa fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                    ${message}
+                </div>
+            `;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
         }
-    });
-    
-    // Show message function
-    function showMessage(message, type) {
-        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-        const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
         
-        $('#userMessage').html(`
-            <div class="alert ${alertClass}">
-                <i class="fa ${icon}"></i> ${message}
-            </div>
-        `);
-        
-        // Auto-hide after 5 seconds
-        setTimeout(function() {
-            $('#userMessage').html('');
-        }, 5000);
-    }
-});
-</script>
-
+        function clearForm() {
+            document.getElementById('addUserForm').reset();
+            document.getElementById('userMessage').innerHTML = '';
+        }
+    </script>
+        </div>
+    </div>
+</div>
+<?php include('./constant/layout/footer.php');?>
 </body>
 </html>

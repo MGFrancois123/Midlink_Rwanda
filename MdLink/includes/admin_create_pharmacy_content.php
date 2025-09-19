@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../constant/connect.php';
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+if (session_status() === PHP_SESSION_NONE) { if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+} }
 
 // Check if user is super admin
 if (!isset($_SESSION['userRole']) || $_SESSION['userRole'] !== 'super_admin') {

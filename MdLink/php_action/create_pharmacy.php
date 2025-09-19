@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once '../constant/connect.php';
 
 header('Content-Type: application/json');
@@ -110,6 +112,10 @@ try {
             $connect->commit();
             $connect->autocommit(true);
 
+            // Log activity
+            require_once '../activity_logger.php';
+            logCreate($_SESSION['adminId'], 'pharmacies', $pharmacy_id, "Created new pharmacy: {$name}");
+            
             $response['success'] = true;
             $response['message'] = 'Pharmacy created successfully!';
             $response['data'] = array(

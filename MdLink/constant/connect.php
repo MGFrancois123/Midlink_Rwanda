@@ -14,8 +14,3 @@ if($connect->connect_error) {
   // echo "Successfully connected";
 }
 ?>
-
-
-
-
-

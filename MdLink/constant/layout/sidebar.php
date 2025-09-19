@@ -29,7 +29,7 @@
                               <li><a href="add_user.php"><i class="fa fa-user-plus"></i> <span>Add User</span></a></li>
                               <li><a href="create_pharmacy.php"><i class="fa fa-hospital-o"></i> <span>Create Pharmacy</span></a></li>
                               <li><a href="manage_pharmacies.php"><i class="fa fa-building"></i> <span>Manage Pharmacy</span></a></li>
-                              <li><a href="placeholder.php?title=Medical%20Staff"><i class="fa fa-user-md"></i> <span>Medical Staff</span></a></li>
+                              <li><a href="medical_staff.php"><i class="fa fa-user-md"></i> <span>Medical Staff</span></a></li>
                               <li><a href="placeholder.php?title=User%20Activity"><i class="fa fa-history"></i> <span>User Activity</span></a></li>
                             </ul>
                         </li>

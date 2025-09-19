@@ -1,6 +1,8 @@
 <?php
 // Temporary authentication bypass for testing Stock Movements
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Set up test session
 $_SESSION['userId'] = 1;

@@ -5,7 +5,9 @@ ini_set('display_errors', 1);
 echo "<h1>🔍 Stock Movements Debug</h1>";
 
 // Start session and set test user
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 $_SESSION['userId'] = 1;
 $_SESSION['userRole'] = 'super_admin';
 

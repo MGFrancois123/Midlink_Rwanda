@@ -1,6 +1,9 @@
 <?php 
 
-session_start();
+// Fix: Clean up the duplicated and malformed session_start logic
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 require_once 'connect.php';
 // single DB connection via connect.php (mdlink)
@@ -83,7 +86,5 @@ if (!isset($_SESSION['adminId']) || !$_SESSION['adminId']) {
 		exit;
 	}
 }
-
-
 
 ?>

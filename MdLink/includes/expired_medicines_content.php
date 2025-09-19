@@ -3,7 +3,9 @@ require_once __DIR__ . '/../constant/connect.php';
 
 // Start session if not already started
 if (session_status() == PHP_SESSION_NONE) {
+    if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
 }
 
 // Get pharmacy context

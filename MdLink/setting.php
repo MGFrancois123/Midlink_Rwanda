@@ -9,7 +9,9 @@
   <?php
  include('./constant/connect.php');
  if (session_status() === PHP_SESSION_NONE) {
- 	session_start();
+ 	if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
  }
  $currentUserId = isset($_SESSION['userId']) ? (int)$_SESSION['userId'] : 0;
  $result = array('user_id' => '', 'username' => '');

@@ -8,7 +8,9 @@
  Visit website : www.mayurik.com --> 
 <link rel="stylesheet" href="assets/css/popup_style.css">
  <?php
-//session_start();
+//if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 //error_reporting(0);
 include('./constant/connect1.php');
 if(isset($_POST["btn_mail"]))

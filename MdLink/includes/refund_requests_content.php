@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../constant/connect.php';
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+if (session_status() === PHP_SESSION_NONE) { if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+} }
 
 if (!isset($_SESSION['adminId'])) {
 	echo '<div class="alert alert-danger"><i class="fa fa-exclamation-triangle"></i> Access Denied. Please log in.</div>';

@@ -8,11 +8,15 @@
  Visit website : www.mayurik.com --> 
 <link rel="stylesheet" href="assets/css/popup_style.css"> 
  <?php
-//session_start();
+//if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
  include('./constant/connect.php');
  // fetch current user details for the form values
  if (session_status() === PHP_SESSION_NONE) {
- 	session_start();
+ 	if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
  }
  $currentUserId = isset($_SESSION['userId']) ? (int)$_SESSION['userId'] : 0;
  $result = array('user_id' => '', 'username' => '');

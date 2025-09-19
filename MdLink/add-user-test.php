@@ -4,7 +4,9 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 // Start session but don't include check.php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 include('./constant/connect.php');
 
 // Get pharmacies for dropdown
