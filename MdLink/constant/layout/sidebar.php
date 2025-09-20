@@ -33,6 +33,7 @@
                               <li><a href="placeholder.php?title=User%20Activity"><i class="fa fa-history"></i> <span>User Activity</span></a></li>
                             </ul>
                         </li>
+                        
                         <li> <a class="has-arrow" href="#" aria-expanded="false"><i class="fa fa-medkit"></i><span class="hide-menu">Medicine Catalog</span></a>
                             <ul aria-expanded="false" class="collapse">
                               <li><a href="add-product.php"><i class="fa fa-pencil-square-o"></i> <span>Add / Update Medicines</span></a></li>
@@ -84,6 +85,9 @@
                                 <li><a href="recall_alerts.php"><i class="fa fa-exclamation-triangle"></i> <span>Recall Alerts</span></a></li>
                             </ul>
                         </li>
+                        <li><a href="store.php"><i class="fa fa-store"></i> Medicine Store</a></li>
+                        <li><a href="cart.php"><i class="fa fa-shopping-cart"></i> Shopping Cart</a></li>
+                        <li><a href="order_history.php"><i class="fa fa-history"></i> Order History</a></li>
                   <?php }?>
 
                   <?php if(isset($_SESSION['userRole']) && $_SESSION['userRole']==='finance_admin') { ?>

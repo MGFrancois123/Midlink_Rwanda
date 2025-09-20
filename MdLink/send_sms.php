@@ -639,6 +639,7 @@ body {
 <?php include('./constant/layout/footer.php');?>
 
 <script>
+
 // Character counter
 document.getElementById('message').addEventListener('input', function() {
     const count = this.value.length;
@@ -659,10 +660,22 @@ document.getElementById('smsForm').addEventListener('submit', function(e) {
     
     const formData = new FormData(this);
     const phone = formData.get('phone');
+    const message = formData.get('message');
     
     // Validate phone number format
     if (!phone.match(/^\+250[0-9]{9}$/)) {
-        alert('Please enter a valid Rwandan phone number in format +250XXXXXXXXX');
+        showAlert('Please enter a valid Rwandan phone number in format +250XXXXXXXXX', 'error');
+        return;
+    }
+    
+    // Validate message length
+    if (message.length === 0) {
+        showAlert('Please enter a message', 'error');
+        return;
+    }
+    
+    if (message.length > 160) {
+        showAlert('Message is too long. Maximum 160 characters allowed.', 'error');
         return;
     }
     
@@ -672,6 +685,7 @@ document.getElementById('smsForm').addEventListener('submit', function(e) {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Sending...';
     submitBtn.disabled = true;
     
+    // Send SMS
     fetch('php_action/send_sms.php', {
         method: 'POST',
         body: formData
@@ -679,16 +693,19 @@ document.getElementById('smsForm').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('SMS sent successfully!');
+            showAlert('SMS sent successfully!', 'success');
             clearForm();
-            location.reload(); // Refresh to show new SMS in logs
+            // Refresh page after a short delay to show new SMS in logs
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
         } else {
-            alert('Failed to send SMS: ' + (data.message || 'Unknown error'));
+            showAlert('Failed to send SMS: ' + (data.message || 'Unknown error'), 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('An error occurred while sending SMS');
+        showAlert('An error occurred while sending SMS', 'error');
     })
     .finally(() => {
         submitBtn.innerHTML = originalText;
@@ -713,27 +730,58 @@ function useTemplate(type) {
 function sendReminder() {
     useTemplate('reminder');
     document.getElementById('messageType').value = 'reminder';
+    document.getElementById('senderId').value = 'REMINDER';
 }
 
 function sendAlert() {
     useTemplate('expiry');
     document.getElementById('messageType').value = 'alert';
+    document.getElementById('senderId').value = 'ALERT';
 }
 
 function sendNotification() {
     useTemplate('welcome');
     document.getElementById('messageType').value = 'notification';
+    document.getElementById('senderId').value = 'INFO';
 }
 
 function bulkSms() {
-    alert('Bulk SMS functionality will be implemented in the next version');
+    showAlert('Bulk SMS functionality will be implemented in the next version', 'info');
 }
 
 function testSms() {
+    // Fill form with test data
     document.getElementById('phone').value = '+250786980814';
-    document.getElementById('message').value = 'This is a test SMS from MdLink Pharmacy Management System.';
+    document.getElementById('message').value = 'This is a test SMS from MdLink Pharmacy Management System sent at ' + new Date().toLocaleString();
     document.getElementById('message').dispatchEvent(new Event('input'));
     document.getElementById('messageType').value = 'general';
+    document.getElementById('senderId').value = 'INEZA';
+    
+    // Optionally send test SMS directly
+    const confirmed = confirm('Do you want to send this test SMS immediately?');
+    if (confirmed) {
+        const formData = new FormData();
+        formData.append('phone', '+250786980814');
+        formData.append('message', document.getElementById('message').value);
+        
+        fetch('php_action/test_sms.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Test SMS sent successfully!', 'success');
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showAlert('Test SMS failed: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Test SMS Error:', error);
+            showAlert('Error sending test SMS', 'error');
+        });
+    }
 }
 
 function clearForm() {
@@ -748,7 +796,7 @@ function refreshStats() {
 
 function viewSmsLogs() {
     // This could open a modal or redirect to a detailed logs page
-    alert('Detailed SMS logs view will be implemented');
+    showAlert('Detailed SMS logs view will be implemented', 'info');
 }
 
 // Auto-format phone number
@@ -761,4 +809,169 @@ document.getElementById('phone').addEventListener('input', function() {
         this.value = '+' + value;
     }
 });
+
+// Enhanced alert function
+function showAlert(message, type = 'info') {
+    // Remove any existing alerts
+    const existingAlerts = document.querySelectorAll('.custom-alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show custom-alert`;
+    alertDiv.style.position = 'fixed';
+    alertDiv.style.top = '20px';
+    alertDiv.style.right = '20px';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.minWidth = '300px';
+    alertDiv.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+    
+    const icon = {
+        success: 'fas fa-check-circle',
+        error: 'fas fa-exclamation-circle',
+        warning: 'fas fa-exclamation-triangle',
+        info: 'fas fa-info-circle'
+    };
+    
+    alertDiv.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="${icon[type] || icon.info} me-2"></i>
+            <span>${message}</span>
+        </div>
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv && alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+// Service health check function
+function checkSmsServiceHealth() {
+    fetch('https://sms-system-aelu.onrender.com/health')
+        .then(response => response.json())
+        .then(data => {
+            console.log('SMS Service Health:', data);
+            if (data.status === 'healthy') {
+                showAlert('SMS Service is online and healthy', 'success');
+            } else {
+                showAlert('SMS Service health check failed', 'warning');
+            }
+        })
+        .catch(error => {
+            console.error('Health check failed:', error);
+            showAlert('Cannot connect to SMS service', 'error');
+        });
+}
+
+// Validate form before submission
+function validateSmsForm() {
+    const senderId = document.getElementById('senderId').value;
+    const phone = document.getElementById('phone').value;
+    const message = document.getElementById('message').value;
+    
+    if (!senderId) {
+        showAlert('Please select a Sender ID', 'error');
+        return false;
+    }
+    
+    if (!phone) {
+        showAlert('Please enter a phone number', 'error');
+        return false;
+    }
+    
+    if (!phone.match(/^\+250[0-9]{9}$/)) {
+        showAlert('Please enter a valid Rwandan phone number (+250XXXXXXXXX)', 'error');
+        return false;
+    }
+    
+    if (!message) {
+        showAlert('Please enter a message', 'error');
+        return false;
+    }
+    
+    if (message.length > 160) {
+        showAlert('Message is too long (maximum 160 characters)', 'error');
+        return false;
+    }
+    
+    return true;
+}
+
+// Enhanced phone number formatting
+document.getElementById('phone').addEventListener('blur', function() {
+    const phone = this.value.trim();
+    if (phone) {
+        // Try to format the phone number
+        let formatted = phone;
+        
+        // Remove any spaces, dashes, or other formatting
+        formatted = formatted.replace(/[\s\-\(\)]/g, '');
+        
+        // Handle different input patterns
+        if (formatted.match(/^7[0-9]{8}$/)) {
+            // Local format: 7XXXXXXXX
+            this.value = '+250' + formatted;
+        } else if (formatted.match(/^2507[0-9]{8}$/)) {
+            // International without plus: 2507XXXXXXXX  
+            this.value = '+' + formatted;
+        } else if (formatted.match(/^\+2507[0-9]{8}$/)) {
+            // Already correct format
+            this.value = formatted;
+        }
+        
+        // Validate final format
+        if (!this.value.match(/^\+250[0-9]{9}$/)) {
+            this.classList.add('is-invalid');
+            showAlert('Invalid phone number format. Use +250XXXXXXXXX', 'error');
+        } else {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        }
+    }
+});
+
+// Message type change handler
+document.getElementById('messageType').addEventListener('change', function() {
+    const messageType = this.value;
+    const senderIdSelect = document.getElementById('senderId');
+    
+    // Suggest appropriate sender ID based on message type
+    const senderSuggestions = {
+        'reminder': 'REMINDER',
+        'alert': 'ALERT',
+        'notification': 'INFO',
+        'promotional': 'PHARMACY',
+        'general': 'INEZA'
+    };
+    
+    if (senderSuggestions[messageType] && senderIdSelect.value === '') {
+        senderIdSelect.value = senderSuggestions[messageType];
+    }
+});
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    // Add form validation classes
+    const form = document.getElementById('smsForm');
+    form.classList.add('needs-validation');
+    
+    // Check SMS service health on page load (optional)
+    // checkSmsServiceHealth();
+    
+    // Add tooltips if Bootstrap is available
+    if (typeof bootstrap !== 'undefined') {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
+});
+
+
 </script>

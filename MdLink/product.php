@@ -200,6 +200,7 @@ foreach ($medicines_data as $medicine) {
     padding: 6px 12px;
     font-size: 0.8rem;
     margin-right: 5px;
+    margin-bottom: 5px;
 }
 
 .btn-danger.action-btn {
@@ -212,6 +213,107 @@ foreach ($medicines_data as $medicine) {
     background: linear-gradient(135deg, #c82333, #bd2130);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.btn-success.action-btn {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-success.action-btn:hover {
+    background: linear-gradient(135deg, #20c997, #17a2b8);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btn-warning.action-btn {
+    background: linear-gradient(135deg, #ffc107, #e0a800);
+    border: none;
+    color: #000;
+    transition: all 0.3s ease;
+}
+
+.btn-warning.action-btn:hover {
+    background: linear-gradient(135deg, #e0a800, #d39e00);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+}
+
+/* Modal Styles */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-bottom: none;
+    border-radius: 15px 15px 0 0;
+}
+
+.modal-footer {
+    border-top: 1px solid #eee;
+    padding: 20px;
+}
+
+.product-detail-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 15px 0;
+}
+
+.quantity-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.quantity-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.quantity-input {
+    width: 80px;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 8px;
+}
+
+.payment-options {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.payment-btn {
+    flex: 1;
+    min-width: 150px;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.cart-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
 }
 </style>
 
@@ -270,6 +372,12 @@ foreach ($medicines_data as $medicine) {
                         case 'deleted':
                             $message = 'Medicine deleted successfully!';
                             break;
+                        case 'added_to_cart':
+                            $message = 'Medicine added to cart successfully!';
+                            break;
+                        case 'order_placed':
+                            $message = 'Order placed successfully!';
+                            break;
                         default:
                             $message = htmlspecialchars($_GET['success']);
                     }
@@ -298,6 +406,12 @@ foreach ($medicines_data as $medicine) {
                             break;
                         case 'missing_medicine_id':
                             $message = 'Medicine ID is missing. Please try again.';
+                            break;
+                        case 'insufficient_stock':
+                            $message = 'Insufficient stock for the requested quantity.';
+                            break;
+                        case 'cart_add_failed':
+                            $message = 'Failed to add item to cart. Please try again.';
                             break;
                         default:
                             $message = htmlspecialchars($_GET['error']);
@@ -392,6 +506,12 @@ foreach ($medicines_data as $medicine) {
                                                 <a href="javascript:void(0)" onclick="deleteMedicine(<?php echo $medicine['medicine_id']; ?>)" class="btn btn-xs btn-danger action-btn" title="Delete">
                                                     <i class="fa fa-trash"></i>
                                                 </a>
+                                                <a href="javascript:void(0)" onclick="buyMedicine(<?php echo $medicine['medicine_id']; ?>)" class="btn btn-xs btn-success action-btn" title="Buy">
+                                                    <i class="fa fa-shopping-bag"></i>
+                                                </a>
+                                                <a href="javascript:void(0)" onclick="addToCart(<?php echo $medicine['medicine_id']; ?>)" class="btn btn-xs btn-warning action-btn" title="Add to Cart">
+                                                    <i class="fa fa-cart-plus"></i>
+                                                </a>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -408,6 +528,55 @@ foreach ($medicines_data as $medicine) {
         </div>
     </div>
 </div>
+
+<!-- Buy Medicine Modal -->
+<div class="modal fade" id="buyMedicineModal" tabindex="-1" role="dialog" aria-labelledby="buyMedicineModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="buyMedicineModalLabel">
+                    <i class="fa fa-shopping-bag"></i> Purchase Medicine
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="medicineDetails" class="product-detail-card">
+                    <!-- Medicine details will be loaded here -->
+                </div>
+                
+                <div class="quantity-selector">
+                    <label for="quantity" class="font-weight-bold">Quantity:</label>
+                    <button type="button" class="quantity-btn" onclick="decreaseQuantity()">-</button>
+                    <input type="number" id="quantity" class="quantity-input" value="1" min="1" max="100">
+                    <button type="button" class="quantity-btn" onclick="increaseQuantity()">+</button>
+                </div>
+                
+                <div class="total-price">
+                    <h5>Total: <span id="totalPrice" class="text-success">RWF 0</span></h5>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="payment-options w-100">
+                    <button type="button" class="btn btn-primary payment-btn" onclick="payWithCard()">
+                        <i class="fa fa-credit-card"></i> Pay with Card
+                    </button>
+                    <button type="button" class="btn btn-info payment-btn" onclick="payWithMobile()">
+                        <i class="fa fa-mobile"></i> Pay with Mobile Money
+                    </button>
+                    <button type="button" class="btn btn-warning payment-btn" onclick="addToCartFromModal()">
+                        <i class="fa fa-cart-plus"></i> Add to Cart
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cart Notification -->
+<div id="cartNotification" class="cart-notification"></div>
 
 <?php include('./constant/layout/footer.php');?>
 
@@ -436,26 +605,217 @@ $(document).ready(function() {
             $('#medicineTableTools').append($btns);
         });
     }
+});
 
-    // Add delete medicine function
-    window.deleteMedicine = function(id) {
-        if (confirm('Are you sure you want to delete this medicine? This action cannot be undone.')) {
-            // Create a form to submit the delete request
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.action = 'php_action/delete_medicine.php';
-            
-            var input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'medicine_id';
-            input.value = id;
-            
-            form.appendChild(input);
-            document.body.appendChild(form);
-            form.submit();
+// Global variables for medicine data
+let currentMedicine = null;
+let medicineData = <?php echo json_encode($medicines_data); ?>;
+
+// Delete medicine function
+function deleteMedicine(id) {
+    if (confirm('Are you sure you want to delete this medicine? This action cannot be undone.')) {
+        // Create a form to submit the delete request
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'php_action/delete_medicine.php';
+        
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'medicine_id';
+        input.value = id;
+        
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Buy medicine function
+function buyMedicine(medicineId) {
+    currentMedicine = medicineData.find(med => med.medicine_id == medicineId);
+    if (!currentMedicine) {
+        alert('Medicine not found!');
+        return;
+    }
+    
+    // Populate modal with medicine details
+    const detailsHtml = `
+        <div class="row">
+            <div class="col-md-6">
+                <h5 class="text-primary">${currentMedicine.name}</h5>
+                <p><strong>Description:</strong> ${currentMedicine.description || 'No description'}</p>
+                <p><strong>Pharmacy:</strong> ${currentMedicine.pharmacy_name}</p>
+                <p><strong>Stock Available:</strong> ${currentMedicine.stock_quantity} units</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Unit Price:</strong> RWF ${currentMedicine.price.toLocaleString()}</p>
+                <p><strong>Expiry Date:</strong> ${currentMedicine.expiry_date || 'N/A'}</p>
+                <p><strong>Restricted:</strong> ${currentMedicine.Restricted_Medicine ? 'Yes' : 'No'}</p>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('medicineDetails').innerHTML = detailsHtml;
+    document.getElementById('quantity').max = currentMedicine.stock_quantity;
+    updateTotalPrice();
+    
+    $('#buyMedicineModal').modal('show');
+}
+
+// Add to cart function
+function addToCart(medicineId) {
+    const medicine = medicineData.find(med => med.medicine_id == medicineId);
+    if (!medicine) {
+        alert('Medicine not found!');
+        return;
+    }
+    
+    // Send AJAX request to add to cart
+    $.ajax({
+        url: 'php_action/add_to_cart.php',
+        method: 'POST',
+        data: {
+            medicine_id: medicineId,
+            quantity: 1
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                showNotification('Medicine added to cart successfully!', 'success');
+            } else {
+                showNotification(response.message || 'Failed to add medicine to cart', 'error');
+            }
+        },
+        error: function() {
+            showNotification('An error occurred while adding to cart', 'error');
         }
-    };
+    });
+}
+
+// Quantity control functions
+function increaseQuantity() {
+    const quantityInput = document.getElementById('quantity');
+    const currentValue = parseInt(quantityInput.value);
+    const maxValue = parseInt(quantityInput.max);
+    
+    if (currentValue < maxValue) {
+        quantityInput.value = currentValue + 1;
+        updateTotalPrice();
+    }
+}
+
+function decreaseQuantity() {
+    const quantityInput = document.getElementById('quantity');
+    const currentValue = parseInt(quantityInput.value);
+    
+    if (currentValue > 1) {
+        quantityInput.value = currentValue - 1;
+        updateTotalPrice();
+    }
+}
+
+// Update total price
+function updateTotalPrice() {
+    if (currentMedicine) {
+        const quantity = parseInt(document.getElementById('quantity').value);
+        const total = currentMedicine.price * quantity;
+        document.getElementById('totalPrice').textContent = `RWF ${total.toLocaleString()}`;
+    }
+}
+
+// Payment functions
+function payWithCard() {
+    const quantity = parseInt(document.getElementById('quantity').value);
+    processPayment('card', quantity);
+}
+
+function payWithMobile() {
+    const quantity = parseInt(document.getElementById('quantity').value);
+    processPayment('mobile_money', quantity);
+}
+
+function addToCartFromModal() {
+    const quantity = parseInt(document.getElementById('quantity').value);
+    
+    $.ajax({
+        url: 'php_action/add_to_cart.php',
+        method: 'POST',
+        data: {
+            medicine_id: currentMedicine.medicine_id,
+            quantity: quantity
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                $('#buyMedicineModal').modal('hide');
+                showNotification(`${quantity} units of ${currentMedicine.name} added to cart!`, 'success');
+            } else {
+                showNotification(response.message || 'Failed to add medicine to cart', 'error');
+            }
+        },
+        error: function() {
+            showNotification('An error occurred while adding to cart', 'error');
+        }
+    });
+}
+
+// Process payment
+function processPayment(paymentMethod, quantity) {
+    $.ajax({
+        url: 'php_action/process_payment.php',
+        method: 'POST',
+        data: {
+            medicine_id: currentMedicine.medicine_id,
+            quantity: quantity,
+            payment_method: paymentMethod,
+            total_amount: currentMedicine.price * quantity
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                $('#buyMedicineModal').modal('hide');
+                showNotification(`Payment successful! Order placed for ${quantity} units of ${currentMedicine.name}`, 'success');
+                // Optionally reload the page to update stock quantities
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                showNotification(response.message || 'Payment failed. Please try again.', 'error');
+            }
+        },
+        error: function() {
+            showNotification('An error occurred while processing payment', 'error');
+        }
+    });
+}
+
+// Show notification
+function showNotification(message, type) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+    
+    const notification = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <i class="fa ${icon}"></i> ${message}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    `;
+    
+    document.getElementById('cartNotification').innerHTML = notification;
+    
+    // Auto-remove notification after 5 seconds
+    setTimeout(() => {
+        $('#cartNotification .alert').fadeOut();
+    }, 5000);
+}
+
+// Update quantity when input changes
+document.addEventListener('DOMContentLoaded', function() {
+    const quantityInput = document.getElementById('quantity');
+    if (quantityInput) {
+        quantityInput.addEventListener('input', updateTotalPrice);
+    }
 });
 </script>
-
-
