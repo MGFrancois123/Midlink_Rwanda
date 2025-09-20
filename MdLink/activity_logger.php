@@ -5,19 +5,56 @@
  */
 
 function logActivity($admin_id, $action, $table_name, $record_id = null, $description = '', $old_data = null, $new_data = null) {
+    // Try to get connection from different possible locations
     global $connect;
     
-    if (!isset($connect)) {
-        require_once './constant/connect.php';
+    if (!isset($connect) || !$connect) {
+        // Try different paths for the connection file
+        $possible_paths = [
+            './constant/connect.php',
+            '../constant/connect.php',
+            '../../constant/connect.php',
+            dirname(__FILE__) . '/constant/connect.php',
+            dirname(__FILE__) . '/../constant/connect.php'
+        ];
+        
+        foreach ($possible_paths as $path) {
+            if (file_exists($path)) {
+                require_once $path;
+                break;
+            }
+        }
+    }
+    
+    // If still no connection, return false
+    if (!isset($connect) || !$connect) {
+        error_log("Activity Logger: Database connection not available");
+        return false;
     }
     
     $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
     
+    // Convert data to JSON strings if they are arrays/objects
+    $old_data_json = is_array($old_data) || is_object($old_data) ? json_encode($old_data) : $old_data;
+    $new_data_json = is_array($new_data) || is_object($new_data) ? json_encode($new_data) : $new_data;
+    
     try {
         $stmt = $connect->prepare('INSERT INTO audit_logs (admin_id, action, table_name, record_id, description, ip_address, user_agent, old_data, new_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        $stmt->bind_param('ississsss', $admin_id, $action, $table_name, $record_id, $description, $ip_address, $user_agent, $old_data, $new_data);
-        return $stmt->execute();
+        if (!$stmt) {
+            error_log("Activity Logger: Prepare failed - " . $connect->error);
+            return false;
+        }
+        
+        $stmt->bind_param('ississsss', $admin_id, $action, $table_name, $record_id, $description, $ip_address, $user_agent, $old_data_json, $new_data_json);
+        $result = $stmt->execute();
+        
+        if (!$result) {
+            error_log("Activity Logger: Execute failed - " . $stmt->error);
+        }
+        
+        $stmt->close();
+        return $result;
     } catch (Exception $e) {
         error_log("Activity logging error: " . $e->getMessage());
         return false;

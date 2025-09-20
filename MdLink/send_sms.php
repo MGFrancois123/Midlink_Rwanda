@@ -465,19 +465,19 @@ body {
                     <div class="card-body">
                         <form id="smsForm">
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="senderId" class="form-label">Sender ID</label>
-                                    <select class="form-select" id="senderId" name="sender_id" required>
-                                        <option value="">Select Sender ID</option>
-                                        <?php 
-                                        $senderIds = ['INEZA', 'PHARMACY', 'HEALTH', 'ALERT', 'INFO', 'REMINDER'];
-                                        foreach ($senderIds as $sender) {
-                                            echo '<option value="' . $sender . '">' . $sender . '</option>';
-                                        }
-                                        ?>
-                                    </select>
-                                    <small class="text-muted">Note: Sender IDs need HDEV approval</small>
-                                </div>
+                            <div class="col-md-6 mb-3">
+    <label for="senderId" class="form-label">Sender ID</label>
+    <select class="form-select" id="senderId" name="sender_id">
+        <option value="">Use Default (AFRICASTKNG)</option>
+        <?php 
+        $senderIds = ['AFRICASTKNG','INEZA', 'PHARMACY', 'HEALTH', 'ALERT', 'INFO', 'REMINDER'];
+        foreach ($senderIds as $sender) {
+            echo '<option value="' . $sender . '">' . $sender . '</option>';
+        }
+        ?>
+    </select>
+    <small class="text-muted">Note: Sender IDs need HDEV approval. Leave blank for default.</small>
+</div>
                                 
                                 <div class="col-md-6 mb-3">
                                     <label for="phone" class="form-label">Phone Number</label>
@@ -869,16 +869,13 @@ function checkSmsServiceHealth() {
         });
 }
 
-// Validate form before submission
 function validateSmsForm() {
-    const senderId = document.getElementById('senderId').value;
+    const senderId = document.getElementById('senderId').value;  // Can be empty now
     const phone = document.getElementById('phone').value;
     const message = document.getElementById('message').value;
     
-    if (!senderId) {
-        showAlert('Please select a Sender ID', 'error');
-        return false;
-    }
+    // Remove senderId required check
+    // if (!senderId) { ... }  // Comment out or remove
     
     if (!phone) {
         showAlert('Please enter a phone number', 'error');

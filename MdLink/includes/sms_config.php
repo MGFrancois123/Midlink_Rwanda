@@ -4,16 +4,16 @@
  * This file contains configuration settings for SMS functionality
  */
 
-// SMS Service Configuration
+// SMS Service Configuration (Your hosted Africa's Talking service)
 define('SMS_SERVICE_URL', 'https://sms-system-aelu.onrender.com/');
 define('SMS_DELIVERY_CALLBACK_URL', 'https://sms-system-aelu.onrender.com/delivery');
 
 // Default SMS Settings
 define('DEFAULT_SENDER_ID', 'INEZA');
 define('MAX_SMS_LENGTH', 160);
-define('SMS_TIMEOUT', 30); // seconds
+define('SMS_TIMEOUT', 60); // Increased timeout for service wake-up
 
-// Approved Sender IDs (these need HDEV approval)
+// Approved Sender IDs for Africa's Talking
 $approved_sender_ids = [
     'INEZA',
     'PHARMACY', 
@@ -62,41 +62,55 @@ function formatRwandanPhoneNumber($phone) {
         return '+' . $phone;
     } elseif (strlen($phone) == 13 && substr($phone, 0, 4) == '2507') {
         return '+' . $phone;
+    } elseif (strlen($phone) == 10 && substr($phone, 0, 1) == '0') {
+        return '+250' . substr($phone, 1);
     }
     
     return $phone; // Return as is if format not recognized
 }
 
 /**
- * Get SMS statistics from database
+ * Get SMS statistics from database with error handling
  */
 function getSmsStatistics($connect) {
-    $stats = [];
+    $stats = [
+        'total_sent' => 0,
+        'today_sent' => 0,
+        'failed_sms' => 0,
+        'success_rate' => 0
+    ];
     
     try {
+        // Check if sms_logs table exists first
+        $tableCheck = $connect->query("SHOW TABLES LIKE 'sms_logs'");
+        if (!$tableCheck || $tableCheck->num_rows == 0) {
+            return $stats; // Return default stats if table doesn't exist
+        }
+        
         // Total SMS sent
         $result = $connect->query("SELECT COUNT(*) as count FROM sms_logs");
-        $stats['total_sent'] = $result ? $result->fetch_assoc()['count'] : 0;
+        if ($result) {
+            $stats['total_sent'] = $result->fetch_assoc()['count'];
+        }
         
         // Today's SMS
         $result = $connect->query("SELECT COUNT(*) as count FROM sms_logs WHERE DATE(created_at) = CURDATE()");
-        $stats['today_sent'] = $result ? $result->fetch_assoc()['count'] : 0;
+        if ($result) {
+            $stats['today_sent'] = $result->fetch_assoc()['count'];
+        }
         
-        // Failed SMS (basic check for error in response)
-        $result = $connect->query("SELECT COUNT(*) as count FROM sms_logs WHERE api_response LIKE '%error%' OR api_response LIKE '%fail%'");
-        $stats['failed_sms'] = $result ? $result->fetch_assoc()['count'] : 0;
+        // Failed SMS (check for error indicators in response)
+        $result = $connect->query("SELECT COUNT(*) as count FROM sms_logs WHERE api_response LIKE '%\"success\":false%' OR api_response LIKE '%error%' OR api_response LIKE '%fail%'");
+        if ($result) {
+            $stats['failed_sms'] = $result->fetch_assoc()['count'];
+        }
         
         // Success rate
         $stats['success_rate'] = $stats['total_sent'] > 0 ? 
             round((($stats['total_sent'] - $stats['failed_sms']) / $stats['total_sent']) * 100, 1) : 0;
+            
     } catch (Exception $e) {
-        // If there's an error, return default stats
-        $stats = [
-            'total_sent' => 0,
-            'today_sent' => 0,
-            'failed_sms' => 0,
-            'success_rate' => 0
-        ];
+        error_log('Error getting SMS statistics: ' . $e->getMessage());
     }
     
     return $stats;
@@ -120,16 +134,64 @@ function createSmsLogsTable($connect) {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     
     try {
-        $connect->query($sql);
+        $result = $connect->query($sql);
+        if (!$result) {
+            error_log('Failed to create sms_logs table: ' . $connect->error);
+            return false;
+        }
         return true;
     } catch (Exception $e) {
-        error_log('Failed to create sms_logs table: ' . $e->getMessage());
+        error_log('Exception creating sms_logs table: ' . $e->getMessage());
         return false;
     }
 }
 
-// Initialize SMS logs table
-if (isset($connect)) {
+/**
+ * Test SMS service connectivity
+ */
+function testSmsServiceConnectivity() {
+    $healthUrl = SMS_SERVICE_URL . 'health';
+    
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'timeout' => 10,
+            'header' => 'User-Agent: MdLink-Health-Check/1.0'
+        ]
+    ]);
+    
+    try {
+        $response = @file_get_contents($healthUrl, false, $context);
+        if ($response === false) {
+            return [
+                'status' => 'error',
+                'message' => 'Service unreachable'
+            ];
+        }
+        
+        $data = json_decode($response, true);
+        if ($data && isset($data['status']) && $data['status'] === 'healthy') {
+            return [
+                'status' => 'healthy',
+                'message' => 'Service is online'
+            ];
+        }
+        
+        return [
+            'status' => 'warning',
+            'message' => 'Service responded but status unclear'
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'status' => 'error',
+            'message' => 'Service check failed: ' . $e->getMessage()
+        ];
+    }
+}
+
+// Initialize SMS logs table if database connection exists
+if (isset($connect) && $connect instanceof mysqli) {
     createSmsLogsTable($connect);
 }
 ?>

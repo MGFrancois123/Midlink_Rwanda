@@ -14,6 +14,8 @@ logView($_SESSION['adminId'], 'store', 'Viewed medicine store');
 ?>
 
 <?php include('./constant/layout/head.php');?>
+<!-- Add Flutterwave script -->
+<script src="https://checkout.flutterwave.com/v3.js"></script>
 <?php include('./constant/layout/header.php');?>
 <?php include('./constant/layout/sidebar.php');?>
 
@@ -157,6 +159,9 @@ if ($pharmacies_result) {
 }
 
 $total_products = count($medicines_data);
+
+// Assuming user email is stored in session; adjust as needed based on your auth system
+$user_email = isset($_SESSION['email']) ? $_SESSION['email'] : 'customer@passtrack.com'; // Fallback to reference email
 ?>
 
 <style>
@@ -690,8 +695,8 @@ $total_products = count($medicines_data);
                     </button>
                     <button type="button" class="btn btn-warning payment-btn" onclick="addToCartFromModal()">
                         <i class="fa fa-cart-plus"></i> Add to Cart
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    </button>                    
+                    <button type="button" class="btn btn-secondary" onclick="window.location.reload()">Cancel</button>
                 </div>
             </div>
         </div>
@@ -700,6 +705,9 @@ $total_products = count($medicines_data);
 
 <!-- Cart Notification -->
 <div id="cartNotification" class="cart-notification"></div>
+
+<!-- Hidden user email for JS -->
+<input type="hidden" id="userEmail" value="<?php echo htmlspecialchars($user_email); ?>">
 
 <?php include('./constant/layout/footer.php');?>
 
@@ -910,8 +918,8 @@ function updateTotalPrice() {
     }
 }
 
-// Process payment
-function processPayment(paymentMethod, quantity) {
+// Payment functions
+function payWithCard() {
     if (!currentMedicine) {
         showNotification('No medicine selected!', 'error');
         return;
@@ -922,20 +930,104 @@ function processPayment(paymentMethod, quantity) {
         showNotification('This is a restricted medicine. Please contact a healthcare professional.', 'error');
         return;
     }
-    
+
+    const quantity = parseInt(document.getElementById('quantity').value);
     if (quantity < 1 || quantity > currentMedicine.stock_quantity) {
         showNotification('Invalid quantity selected!', 'error');
         return;
     }
+
+    const total = currentMedicine.price * quantity;
+    const email = document.getElementById('userEmail').value;
+    const tx_ref = Date.now().toString() + Math.floor(Math.random() * 1000); // Simple unique ref
+
+    FlutterwaveCheckout({
+        public_key: "FLWPUBK_TEST-ab0db75066081fdc2501e5eb2cf42da1-X",
+        tx_ref: tx_ref,
+        amount: total,
+        currency: "RWF",
+        payment_options: "card",
+        redirect_url: "https://your-website.com/redirect", // Replace with your actual redirect URL if needed
+        customer: {
+            email: email,
+        },
+        customizations: {
+            title: "Purchase Medicine",
+            description: `Payment for ${currentMedicine.name}`,
+        },
+        callback: function (data) {
+            if (data.status === "successful") {
+                verifyPayment(data.transaction_id, quantity, total, 'card');
+            } else {
+                showNotification('Payment failed: ' + data.status, 'error');
+            }
+        },
+        onclose: function() {
+            // Optional: Handle modal close if needed
+        },
+    });
+}
+
+function payWithMobile() {
+    if (!currentMedicine) {
+        showNotification('No medicine selected!', 'error');
+        return;
+    }
     
+    // Check if medicine is restricted
+    if (currentMedicine.Restricted_Medicine && !isUserAuthorizedForRestricted()) {
+        showNotification('This is a restricted medicine. Please contact a healthcare professional.', 'error');
+        return;
+    }
+
+    const quantity = parseInt(document.getElementById('quantity').value);
+    if (quantity < 1 || quantity > currentMedicine.stock_quantity) {
+        showNotification('Invalid quantity selected!', 'error');
+        return;
+    }
+
+    const total = currentMedicine.price * quantity;
+    const email = document.getElementById('userEmail').value;
+    const tx_ref = Date.now().toString() + Math.floor(Math.random() * 1000); // Simple unique ref
+
+    FlutterwaveCheckout({
+        public_key: "FLWPUBK_TEST-ab0db75066081fdc2501e5eb2cf42da1-X",
+        tx_ref: tx_ref,
+        amount: total,
+        currency: "RWF",
+        payment_options: "mobilemoneyrwanda",
+        redirect_url: "https://your-website.com/redirect", // Replace with your actual redirect URL if needed
+        customer: {
+            email: email,
+        },
+        customizations: {
+            title: "Purchase Medicine",
+            description: `Payment for ${currentMedicine.name}`,
+        },
+        callback: function (data) {
+            if (data.status === "successful") {
+                verifyPayment(data.transaction_id, quantity, total, 'mobile_money');
+            } else {
+                showNotification('Payment failed: ' + data.status, 'error');
+            }
+        },
+        onclose: function() {
+            // Optional: Handle modal close if needed
+        },
+    });
+}
+
+// Verify payment
+function verifyPayment(transaction_id, quantity, total, payment_method) {
     $.ajax({
         url: 'php_action/process_payment.php',
         method: 'POST',
         data: {
             medicine_id: currentMedicine.medicine_id,
             quantity: quantity,
-            payment_method: paymentMethod,
-            total_amount: currentMedicine.price * quantity
+            payment_method: payment_method,
+            total_amount: total,
+            transaction_id: transaction_id
         },
         dataType: 'json',
         success: function(response) {
@@ -953,17 +1045,6 @@ function processPayment(paymentMethod, quantity) {
             showNotification('An error occurred while processing payment', 'error');
         }
     });
-}
-
-// Payment functions
-function payWithCard() {
-    const quantity = parseInt(document.getElementById('quantity').value);
-    processPayment('card', quantity);
-}
-
-function payWithMobile() {
-    const quantity = parseInt(document.getElementById('quantity').value);
-    processPayment('mobile_money', quantity);
 }
 
 // Show notification
@@ -1065,4 +1146,7 @@ document.addEventListener('DOMContentLoaded', function() {
         observeCards.observe(card);
     });
 });
+
+
+
 </script>

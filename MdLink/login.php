@@ -1,7 +1,13 @@
 <?php ob_start(); ?>
-<!-- Login/Signup page with toggle functionality -->
-<link rel="stylesheet" href="assets/css/popup_style.css"> 
-           <style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Midilink Rwanda - Login</title>
+    <!-- Login/Signup page with toggle functionality -->
+    <link rel="stylesheet" href="assets/css/popup_style.css"> 
+    <style>
 .footer1 {
   position: fixed;
   bottom: 0;
@@ -44,6 +50,28 @@
   height: 46px; 
   border-radius: 0 !important;
 }
+
+/* Password toggle styling */
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #6c757d;
+  z-index: 3;
+  padding: 4px;
+  transition: color 0.3s ease;
+}
+
+.password-toggle:hover {
+  color: #0d67cdff;
+}
+
+.input-group .form-control.has-toggle {
+  padding-right: 40px;
+}
+
 .form-group > label { display: none; }
 /* space between remember and forgot link */
 .remember-forgot .forgot { margin-left: 16px; }
@@ -146,6 +174,61 @@
 .alert {
     border-radius: 8px;
     margin-bottom: 15px;
+    padding: 12px;
+    position: relative;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert .close {
+    position: absolute;
+    top: 8px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+}
+
+.alert .close:hover {
+    opacity: 1;
+}
+
+/* Role dropdown styling */
+.role-dropdown {
+    position: relative;
+}
+
+.role-dropdown select {
+    padding-left: 40px;
+    height: 46px;
+    border-radius: 0 !important;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: #fff url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzZjNzU3ZCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+') no-repeat right 15px center;
+    padding-right: 40px;
+}
+
+/* Form validation styles */
+.form-control.is-valid {
+    border-color: #28a745;
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545;
 }
 
 /* Responsive design for logo section */
@@ -182,6 +265,8 @@
     }
 }
 </style>
+</head>
+<body>
    <?php
    
 include('./constant/layout/head.php');
@@ -191,14 +276,18 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Already logged in: prefer adminId (new). Fallback to legacy userId.
+// Already logged in: redirect based on user role
 if(isset($_SESSION['adminId']) || isset($_SESSION['userId'])) {
   if (!isset($_SESSION['adminId']) && isset($_SESSION['userId'])) {
     $_SESSION['adminId'] = (int)$_SESSION['userId'];
   }
   if (isset($_SESSION['userRole'])) {
-    // All users go to super admin dashboard
-    header('Location: dashboard_super.php');
+    // Redirect based on role
+    if ($_SESSION['userRole'] === 'user') {
+        header('Location: store.php');
+    } else {
+        header('Location: dashboard_super.php');
+    }
     exit;
   }
 }
@@ -217,33 +306,61 @@ if($_POST) {
         $username = $_POST['username'];
         $phone = $_POST['phone'];
         $confirm_password = $_POST['confirm_password'];
+        $role = $_POST['role'] ?? '';
 
         // Validation for signup
-        if(empty($username) || empty($email) || empty($password) || empty($confirm_password) || empty($phone)) {
+        if(empty($username) || empty($email) || empty($password) || empty($confirm_password) || empty($phone) || empty($role)) {
             if(empty($username)) $errors[] = "Username is required";
             if(empty($email)) $errors[] = "Email is required";
             if(empty($password)) $errors[] = "Password is required";
             if(empty($confirm_password)) $errors[] = "Password confirmation is required";
             if(empty($phone)) $errors[] = "Phone number is required";
+            if(empty($role)) $errors[] = "Role selection is required";
         } else if($password !== $confirm_password) {
             $errors[] = "Passwords do not match";
         } else if(strlen($password) < 6) {
             $errors[] = "Password must be at least 6 characters long";
         } else {
-            // Check if email already exists
+            // Check if email already exists in both tables
+            $email_exists = false;
+            
             if (isset($connect) && $connect instanceof mysqli) {
-                $checkSql = "SELECT admin_id FROM admin_users WHERE LOWER(TRIM(email)) = LOWER(TRIM(?)) LIMIT 1";
-                $stmt = $connect->prepare($checkSql);
+                // Check admin_users table
+                $checkAdminSql = "SELECT admin_id FROM admin_users WHERE LOWER(TRIM(email)) = LOWER(TRIM(?)) LIMIT 1";
+                $stmt = $connect->prepare($checkAdminSql);
                 if ($stmt) {
                     $stmt->bind_param('s', $email);
                     $stmt->execute();
                     $result = $stmt->get_result();
-                    
                     if ($result && $result->num_rows > 0) {
-                        $errors[] = "Email already exists. Please use a different email.";
-                    } else {
-                        // Create new user
-                        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                        $email_exists = true;
+                    }
+                    $stmt->close();
+                }
+                
+                // Check users table if not found in admin_users
+                if (!$email_exists) {
+                    $checkUserSql = "SELECT user_id FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM(?)) LIMIT 1";
+                    $stmt = $connect->prepare($checkUserSql);
+                    if ($stmt) {
+                        $stmt->bind_param('s', $email);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        if ($result && $result->num_rows > 0) {
+                            $email_exists = true;
+                        }
+                        $stmt->close();
+                    }
+                }
+                
+                if ($email_exists) {
+                    $errors[] = "Email already exists. Please use a different email.";
+                } else {
+                    // Create new user based on role selection
+                    $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                    
+                    if ($role === 'Pharmacy') {
+                        // Add to admin_users table
                         $insertSql = "INSERT INTO admin_users (username, email, password_hash, phone, status, created_at) VALUES (?, ?, ?, ?, 'active', NOW())";
                         $insertStmt = $connect->prepare($insertSql);
                         
@@ -251,20 +368,37 @@ if($_POST) {
                             $insertStmt->bind_param('ssss', $username, $email, $password_hash, $phone);
                             
                             if ($insertStmt->execute()) {
-                                $success_message = "Account created successfully! You can now login.";
+                                $success_message = "Pharmacy account created successfully! You can now login.";
                                 $is_signup_mode = false; // Switch back to login mode
                             } else {
-                                $errors[] = "Failed to create account. Please try again.";
+                                $errors[] = "Failed to create pharmacy account. Please try again.";
                             }
                             $insertStmt->close();
                         }
+                    } else if ($role === 'Patient') {
+                        // Add to users table with 'user' role
+                        $insertSql = "INSERT INTO users (username, email, password, role, created_at) VALUES (?, ?, ?, 'user', NOW())";
+                        $insertStmt = $connect->prepare($insertSql);
+                        
+                        if ($insertStmt) {
+                            $insertStmt->bind_param('sss', $username, $email, $password_hash);
+                            
+                            if ($insertStmt->execute()) {
+                                $success_message = "Patient account created successfully! You can now login.";
+                                $is_signup_mode = false; // Switch back to login mode
+                            } else {
+                                $errors[] = "Failed to create patient account. Please try again.";
+                            }
+                            $insertStmt->close();
+                        }
+                    } else {
+                        $errors[] = "Invalid role selection.";
                     }
-                    $stmt->close();
                 }
             }
         }
     } else {
-        // Login logic (existing code)
+        // Login logic - search both tables
         if(empty($email) || empty($password)) {
             if($email == "") {
                 $errors[] = "Email is required";
@@ -273,12 +407,15 @@ if($_POST) {
                 $errors[] = "Password is required";
             }
         } else {
-            // 1) Try mdlink admin_users first (super_admin, pharmacy_admin, finance_admin)
-            $isAdminAuthed = false;
+            $isAuthenticated = false;
+            $userRole = '';
+            $userId = 0;
+            $username = '';
+            
             if (isset($connect) && $connect instanceof mysqli) {
                 $given = trim($password);
                 
-                // Use prepared statement to prevent SQL injection
+                // First, try admin_users table
                 $adminSql = "SELECT admin_id, username, password_hash, email, phone, created_at 
                            FROM admin_users 
                            WHERE LOWER(TRIM(email)) = LOWER(TRIM(?)) 
@@ -290,9 +427,6 @@ if($_POST) {
                     $stmt->execute();
                     $adminRes = $stmt->get_result();
                     
-                    // Debug: Log search attempt
-                    error_log("Login attempt for email: " . $email . " - Found " . ($adminRes ? $adminRes->num_rows : 0) . " users");
-                    
                     if ($adminRes && $adminRes->num_rows === 1) {
                         $admin = $adminRes->fetch_assoc();
                         $stored = trim((string)$admin['password_hash']);
@@ -302,44 +436,89 @@ if($_POST) {
                         if (strpos($stored, '$2y$') === 0) {
                             // Use password_verify for bcrypt hashes
                             $passOk = password_verify($given, $stored);
-                            // Debug: Log bcrypt verification attempt
-                            error_log("Bcrypt verification for user: " . $admin['username'] . " - Result: " . ($passOk ? 'SUCCESS' : 'FAILED'));
                         } else {
                             // Use MD5 for legacy hashes
                             $md5Given = md5($given);
                             $passOk = ($stored === $md5Given);
-                            // Debug: Log MD5 verification attempt
-                            error_log("MD5 verification for user: " . $admin['username'] . " - Stored: " . $stored . " - Given: " . $md5Given . " - Result: " . ($passOk ? 'SUCCESS' : 'FAILED'));
                         }
                         
                         if ($passOk) {
-                            // Set session variables
-                            $_SESSION['adminId'] = (int)$admin['admin_id'];
-                            $_SESSION['userId'] = (int)$admin['admin_id'];
-                            $_SESSION['userRole'] = 'super_admin'; // All users get super_admin access
-                            $_SESSION['username'] = $admin['username'] ?? 'Admin';
-                            $_SESSION['email'] = $admin['email'] ?? '';
-                            
-                            // Log login activity
-                            require_once 'activity_logger.php';
-                            logLogin($admin['admin_id'], $admin['username']);
-                            
-                            // Redirect to super admin dashboard
-                            header('Location: dashboard_super.php');
-                            exit;
+                            $isAuthenticated = true;
+                            $userRole = 'super_admin'; // Admin users get super_admin role
+                            $userId = (int)$admin['admin_id'];
+                            $username = $admin['username'];
                         }
                     }
                     $stmt->close();
                 }
+                
+                // If not found in admin_users, try users table
+                if (!$isAuthenticated) {
+                    $userSql = "SELECT user_id, username, password, email, role, created_at 
+                              FROM users 
+                              WHERE LOWER(TRIM(email)) = LOWER(TRIM(?)) 
+                              LIMIT 1";
+                    
+                    $stmt = $connect->prepare($userSql);
+                    if ($stmt) {
+                        $stmt->bind_param('s', $email);
+                        $stmt->execute();
+                        $userRes = $stmt->get_result();
+                        
+                        if ($userRes && $userRes->num_rows === 1) {
+                            $user = $userRes->fetch_assoc();
+                            $stored = trim((string)$user['password']);
+                            $passOk = false;
+                            
+                            // Check if stored hash is bcrypt (starts with $2y$)
+                            if (strpos($stored, '$2y$') === 0) {
+                                // Use password_verify for bcrypt hashes
+                                $passOk = password_verify($given, $stored);
+                            } else {
+                                // Use MD5 for legacy hashes
+                                $md5Given = md5($given);
+                                $passOk = ($stored === $md5Given);
+                            }
+                            
+                            if ($passOk) {
+                                $isAuthenticated = true;
+                                $userRole = $user['role']; // Use role from database
+                                $userId = (int)$user['user_id'];
+                                $username = $user['username'];
+                            }
+                        }
+                        $stmt->close();
+                    }
+                }
+                
+                if ($isAuthenticated) {
+                    // Set session variables
+                    $_SESSION['adminId'] = $userId;
+                    $_SESSION['userId'] = $userId;
+                    $_SESSION['userRole'] = $userRole;
+                    $_SESSION['username'] = $username;
+                    $_SESSION['email'] = $email;
+                    
+                    // Log login activity
+                    if (file_exists('activity_logger.php')) {
+                        require_once 'activity_logger.php';
+                        logLogin($userId, $username);
+                    }
+                    
+                    // Redirect based on role
+                    if ($userRole === 'user') {
+                        header('Location: store.php');
+                    } else {
+                        header('Location: dashboard_super.php');
+                    }
+                    exit;
+                } else {
+                    $errors[] = "Incorrect email/password combination. Please try again.";
+                }
             }
-
-            // Only admin logins are allowed here; no fallback to general users
-            if (!$isAdminAuthed) {
-                $errors[] = "Incorrect email/password combination. Please try again.";
-            }
-        } // /else not empty email // password
+        }
     }
-} // /if $_POST
+}
 
 ?>
     
@@ -420,11 +599,27 @@ if($_POST) {
                                         </div>
                                     </div>
 
+                                    <!-- Role selection dropdown (signup only) -->
+                                    <div class="form-group signup-only role-dropdown" id="roleGroup" <?php echo $is_signup_mode ? 'style="display: block;"' : ''; ?>>
+                                        <label>Select Role</label>
+                                        <div class="input-group">
+                                            <span class="input-group-addon"><i class="fa fa-users"></i></span>
+                                            <select name="role" id="role" class="form-control" <?php echo $is_signup_mode ? 'required' : ''; ?>>
+                                                <option value="">Select your role...</option>
+                                                <option value="Pharmacy">Pharmacy (Admin Access)</option>
+                                                <option value="Patient">Patient (User Access)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
                                     <div class="form-group">
                                         <label>Password</label>
                                         <div class="input-group">
-                                            <span class="input-group-addon "><i class="fa fa-lock"></i></span>
-                                            <input type="password" id="password" name="password" class="form-control" placeholder="Password" required>
+                                            <span class="input-group-addon"><i class="fa fa-lock"></i></span>
+                                            <input type="password" id="password" name="password" class="form-control has-toggle" placeholder="Password" required>
+                                            <span class="password-toggle" onclick="togglePassword('password')" id="passwordToggle">
+                                                <i class="fa fa-eye" id="passwordToggleIcon"></i>
+                                            </span>
                                         </div>
                                     </div>
 
@@ -433,7 +628,10 @@ if($_POST) {
                                         <label>Confirm Password</label>
                                         <div class="input-group">
                                             <span class="input-group-addon"><i class="fa fa-lock"></i></span>
-                                            <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirm Password" <?php echo $is_signup_mode ? 'required' : ''; ?>>
+                                            <input type="password" name="confirm_password" id="confirm_password" class="form-control has-toggle" placeholder="Confirm Password" <?php echo $is_signup_mode ? 'required' : ''; ?>>
+                                            <span class="password-toggle" onclick="togglePassword('confirm_password')" id="confirmPasswordToggle">
+                                                <i class="fa fa-eye" id="confirmPasswordToggleIcon"></i>
+                                            </span>
                                         </div>
                                     </div>
 
@@ -471,6 +669,20 @@ if($_POST) {
     <script src="./assets/js/custom.min.js"></script>
     
     <script>
+    // Password visibility toggle functionality
+    function togglePassword(fieldId) {
+        const passwordField = document.getElementById(fieldId);
+        const toggleIcon = document.getElementById(fieldId + 'ToggleIcon');
+        
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            toggleIcon.className = 'fa fa-eye-slash';
+        } else {
+            passwordField.type = 'password';
+            toggleIcon.className = 'fa fa-eye';
+        }
+    }
+
     // Mode switching functionality
     function switchMode(mode) {
         // Update toggle visual state
@@ -495,6 +707,7 @@ if($_POST) {
             // Add required attribute to signup fields
             document.getElementById('username').required = true;
             document.getElementById('phone').required = true;
+            document.getElementById('role').required = true;
             document.getElementById('confirm_password').required = true;
         } else {
             signupFields.forEach(field => field.style.display = 'none');
@@ -507,11 +720,23 @@ if($_POST) {
             // Remove required attribute from signup fields
             document.getElementById('username').required = false;
             document.getElementById('phone').required = false;
+            document.getElementById('role').required = false;
             document.getElementById('confirm_password').required = false;
         }
         
+        // Reset password visibility for all password fields
+        const passwordFields = ['password', 'confirm_password'];
+        passwordFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            const toggleIcon = document.getElementById(fieldId + 'ToggleIcon');
+            if (field && toggleIcon) {
+                field.type = 'password';
+                toggleIcon.className = 'fa fa-eye';
+            }
+        });
+        
         // Clear form and revalidate
-        document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="password"]').forEach(input => {
+        document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="password"], select').forEach(input => {
             input.value = '';
             input.classList.remove('is-valid', 'is-invalid');
         });
@@ -528,6 +753,7 @@ if($_POST) {
         var password = document.getElementById('password');
         var username = document.getElementById('username');
         var phone = document.getElementById('phone');
+        var role = document.getElementById('role');
         var confirmPassword = document.getElementById('confirm_password');
         var btn = document.getElementById('submitBtn');
         var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -542,10 +768,11 @@ if($_POST) {
                 var usernameValid = username.value.length >= 3;
                 var emailValid = emailRegex.test(email.value);
                 var phoneValid = phoneRegex.test(phone.value);
+                var roleValid = role.value !== '';
                 var passwordValid = password.value.length >= 6;
                 var confirmPasswordValid = confirmPassword.value === password.value && confirmPassword.value.length > 0;
                 
-                isValid = usernameValid && emailValid && phoneValid && passwordValid && confirmPasswordValid;
+                isValid = usernameValid && emailValid && phoneValid && roleValid && passwordValid && confirmPasswordValid;
                 
                 // Visual feedback
                 username.classList.toggle('is-valid', usernameValid);
@@ -553,6 +780,9 @@ if($_POST) {
                 
                 phone.classList.toggle('is-valid', phoneValid);
                 phone.classList.toggle('is-invalid', !phoneValid && phone.value.length > 0);
+                
+                role.classList.toggle('is-valid', roleValid);
+                role.classList.toggle('is-invalid', !roleValid && role.value !== '');
                 
                 confirmPassword.classList.toggle('is-valid', confirmPasswordValid);
                 confirmPassword.classList.toggle('is-invalid', !confirmPasswordValid && confirmPassword.value.length > 0);
@@ -579,6 +809,7 @@ if($_POST) {
         password.addEventListener('input', validate);
         username.addEventListener('input', validate);
         phone.addEventListener('input', validate);
+        role.addEventListener('change', validate);
         confirmPassword.addEventListener('input', validate);
         
         // Initial validation

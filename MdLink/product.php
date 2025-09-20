@@ -8,6 +8,8 @@ require_once 'activity_logger.php';
 logView($_SESSION['adminId'], 'medicines', 'Viewed medicine catalog');
 ?>
 <?php include('./constant/layout/head.php');?>
+<!-- Add Flutterwave script -->
+<script src="https://checkout.flutterwave.com/v3.js"></script>
 <?php include('./constant/layout/header.php');?>
 <?php include('./constant/layout/sidebar.php');?>
 
@@ -81,6 +83,9 @@ foreach ($medicines_data as $medicine) {
         }
     }
 }
+
+// Assuming user email is stored in session; adjust as needed based on your auth system
+$user_email = isset($_SESSION['email']) ? $_SESSION['email'] : 'customer@passtrack.com'; // Fallback to reference email
 ?>
 
 <style>
@@ -537,9 +542,9 @@ foreach ($medicines_data as $medicine) {
                 <h5 class="modal-title" id="buyMedicineModalLabel">
                     <i class="fa fa-shopping-bag"></i> Purchase Medicine
                 </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                <!-- <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
-                </button>
+                </button> -->
             </div>
             <div class="modal-body">
                 <div id="medicineDetails" class="product-detail-card">
@@ -568,7 +573,7 @@ foreach ($medicines_data as $medicine) {
                     <button type="button" class="btn btn-warning payment-btn" onclick="addToCartFromModal()">
                         <i class="fa fa-cart-plus"></i> Add to Cart
                     </button>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.location.reload()">Cancel</button>
                 </div>
             </div>
         </div>
@@ -577,6 +582,9 @@ foreach ($medicines_data as $medicine) {
 
 <!-- Cart Notification -->
 <div id="cartNotification" class="cart-notification"></div>
+
+<!-- Hidden user email for JS -->
+<input type="hidden" id="userEmail" value="<?php echo htmlspecialchars($user_email); ?>">
 
 <?php include('./constant/layout/footer.php');?>
 
@@ -723,15 +731,71 @@ function updateTotalPrice() {
     }
 }
 
-// Payment functions
+// Payment functions (integrated with Flutterwave for both card and mobile money)
 function payWithCard() {
     const quantity = parseInt(document.getElementById('quantity').value);
-    processPayment('card', quantity);
+    const total = currentMedicine.price * quantity;
+    const email = document.getElementById('userEmail').value;
+    const tx_ref = Date.now().toString() + Math.floor(Math.random() * 1000); // Simple unique ref
+
+    FlutterwaveCheckout({
+        public_key: "FLWPUBK_TEST-ab0db75066081fdc2501e5eb2cf42da1-X",
+        tx_ref: tx_ref,
+        amount: total,
+        currency: "RWF",
+        payment_options: "card",
+        redirect_url: "https://your-website.com/redirect", // Replace with your actual redirect URL if needed
+        customer: {
+            email: email,
+        },
+        customizations: {
+            title: "Purchase Medicine",
+            description: `Payment for ${currentMedicine.name}`,
+        },
+        callback: function (data) {
+            if (data.status === "successful") {
+                verifyPayment(data.transaction_id, quantity, total, 'card');
+            } else {
+                showNotification('Payment failed: ' + data.status, 'error');
+            }
+        },
+        onclose: function() {
+            // Optional: Handle modal close if needed
+        },
+    });
 }
 
 function payWithMobile() {
     const quantity = parseInt(document.getElementById('quantity').value);
-    processPayment('mobile_money', quantity);
+    const total = currentMedicine.price * quantity;
+    const email = document.getElementById('userEmail').value;
+    const tx_ref = Date.now().toString() + Math.floor(Math.random() * 1000); // Simple unique ref
+
+    FlutterwaveCheckout({
+        public_key: "FLWPUBK_TEST-ab0db75066081fdc2501e5eb2cf42da1-X",
+        tx_ref: tx_ref,
+        amount: total,
+        currency: "RWF",
+        payment_options: "mobilemoneyrwanda",
+        redirect_url: "https://your-website.com/redirect", // Replace with your actual redirect URL if needed
+        customer: {
+            email: email,
+        },
+        customizations: {
+            title: "Purchase Medicine",
+            description: `Payment for ${currentMedicine.name}`,
+        },
+        callback: function (data) {
+            if (data.status === "successful") {
+                verifyPayment(data.transaction_id, quantity, total, 'mobile_money');
+            } else {
+                showNotification('Payment failed: ' + data.status, 'error');
+            }
+        },
+        onclose: function() {
+            // Optional: Handle modal close if needed
+        },
+    });
 }
 
 function addToCartFromModal() {
@@ -759,16 +823,17 @@ function addToCartFromModal() {
     });
 }
 
-// Process payment
-function processPayment(paymentMethod, quantity) {
+// Verify payment on server
+function verifyPayment(transaction_id, quantity, total, payment_method) {
     $.ajax({
         url: 'php_action/process_payment.php',
         method: 'POST',
         data: {
             medicine_id: currentMedicine.medicine_id,
             quantity: quantity,
-            payment_method: paymentMethod,
-            total_amount: currentMedicine.price * quantity
+            payment_method: payment_method,
+            total_amount: total,
+            transaction_id: transaction_id
         },
         dataType: 'json',
         success: function(response) {
@@ -780,11 +845,11 @@ function processPayment(paymentMethod, quantity) {
                     window.location.reload();
                 }, 2000);
             } else {
-                showNotification(response.message || 'Payment failed. Please try again.', 'error');
+                showNotification(response.message || 'Payment verification failed. Please contact support.', 'error');
             }
         },
         error: function() {
-            showNotification('An error occurred while processing payment', 'error');
+            showNotification('An error occurred while verifying payment', 'error');
         }
     });
 }
@@ -818,4 +883,8 @@ document.addEventListener('DOMContentLoaded', function() {
         quantityInput.addEventListener('input', updateTotalPrice);
     }
 });
+
+
+
+
 </script>
