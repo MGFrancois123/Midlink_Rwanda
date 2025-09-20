@@ -8,6 +8,8 @@ require_once 'activity_logger.php';
 logView($_SESSION['adminId'], 'cart', 'Viewed shopping cart');
 ?>
 <?php include('./constant/layout/head.php');?>
+<!-- Add Flutterwave script -->
+<script src="https://checkout.flutterwave.com/v3.js"></script>
 <?php include('./constant/layout/header.php');?>
 <?php include('./constant/layout/sidebar.php');?>
 
@@ -45,6 +47,9 @@ while ($row = $cart_result->fetch_assoc()) {
     $cart_items[] = $row;
     $cart_total += $row['item_total'];
 }
+
+// Assuming user email is stored in session; adjust as needed based on your auth system
+$user_email = isset($_SESSION['email']) ? $_SESSION['email'] : 'customer@passtrack.com'; // Fallback to reference email
 ?>
 
 <style>
@@ -196,6 +201,76 @@ while ($row = $cart_result->fetch_assoc()) {
     color: white;
     text-decoration: none;
 }
+
+/* Payment Modal Styles */
+.payment-modal .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.payment-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.payment-btn {
+    padding: 15px 20px;
+    border: 2px solid #e1e5eb;
+    border-radius: 10px;
+    background: white;
+    color: #495057;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.payment-btn:hover {
+    border-color: #667eea;
+    background: #f8f9ff;
+    color: #667eea;
+    transform: translateY(-2px);
+}
+
+.payment-btn.card-payment {
+    border-color: #007bff;
+    color: #007bff;
+}
+
+.payment-btn.mobile-payment {
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.payment-btn:hover.card-payment {
+    background: #007bff;
+    color: white;
+}
+
+.payment-btn:hover.mobile-payment {
+    background: #28a745;
+    color: white;
+}
+
+.cart-summary-modal {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 15px 0;
+}
+
+.cart-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    min-width: 300px;
+}
 </style>
 
 <div class="page-wrapper">
@@ -305,9 +380,82 @@ while ($row = $cart_result->fetch_assoc()) {
     </div>
 </div>
 
+<!-- Payment Modal -->
+<div class="modal fade payment-modal" id="paymentModal" tabindex="-1" role="dialog" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentModalLabel">
+                    <i class="fa fa-credit-card"></i> Choose Payment Method
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="cart-summary-modal">
+                    <h6 class="mb-3"><i class="fa fa-shopping-cart"></i> Order Summary</h6>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span id="modal-cart-subtotal">RWF <?php echo number_format($cart_total, 0); ?></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Delivery Fee:</span>
+                        <span>RWF 0</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <strong>Total Amount:</strong>
+                        <strong id="modal-cart-total" class="text-success">RWF <?php echo number_format($cart_total, 0); ?></strong>
+                    </div>
+                </div>
+                
+                <h6 class="mb-3">Select Payment Method:</h6>
+                <div class="payment-options">
+                    <button type="button" class="payment-btn card-payment" onclick="payWithCard()">
+                        <i class="fa fa-credit-card"></i>
+                        <div>
+                            <div>Pay with Card</div>
+                            <small>Visa, Mastercard, etc.</small>
+                        </div>
+                    </button>
+                    <button type="button" class="payment-btn mobile-payment" onclick="payWithMobile()">
+                        <i class="fa fa-mobile"></i>
+                        <div>
+                            <div>Mobile Money</div>
+                            <small>MTN, Airtel Money</small>
+                        </div>
+                    </button>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <small class="text-muted">
+                        <i class="fa fa-lock"></i> Your payment information is secure and encrypted
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fa fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cart Notification -->
+<div id="cartNotification" class="cart-notification"></div>
+
+<!-- Hidden user email for JS -->
+<input type="hidden" id="userEmail" value="<?php echo htmlspecialchars($user_email); ?>">
+
 <?php include('./constant/layout/footer.php');?>
 
 <script>
+// Cart data for JavaScript
+let cartData = <?php echo json_encode($cart_items); ?>;
+let cartTotal = <?php echo $cart_total; ?>;
+
 function updateQuantity(cartId, change, newValue = null) {
     let quantity;
     
@@ -344,6 +492,11 @@ function updateQuantity(cartId, change, newValue = null) {
                 // Update cart totals
                 document.getElementById('cart-subtotal').textContent = 'RWF ' + response.cart_total.toLocaleString();
                 document.getElementById('cart-total').textContent = 'RWF ' + response.cart_total.toLocaleString();
+                document.getElementById('modal-cart-subtotal').textContent = 'RWF ' + response.cart_total.toLocaleString();
+                document.getElementById('modal-cart-total').textContent = 'RWF ' + response.cart_total.toLocaleString();
+                
+                // Update global cart total
+                cartTotal = response.cart_total;
                 
                 showNotification('Cart updated successfully!', 'success');
             } else {
@@ -375,6 +528,9 @@ function removeFromCart(cartId) {
                     if (response.cart_total > 0) {
                         document.getElementById('cart-subtotal').textContent = 'RWF ' + response.cart_total.toLocaleString();
                         document.getElementById('cart-total').textContent = 'RWF ' + response.cart_total.toLocaleString();
+                        document.getElementById('modal-cart-subtotal').textContent = 'RWF ' + response.cart_total.toLocaleString();
+                        document.getElementById('modal-cart-total').textContent = 'RWF ' + response.cart_total.toLocaleString();
+                        cartTotal = response.cart_total;
                     } else {
                         location.reload(); // Reload to show empty cart
                     }
@@ -392,8 +548,112 @@ function removeFromCart(cartId) {
 }
 
 function proceedToCheckout() {
-    // Here you can redirect to a checkout page or show a checkout modal
-    window.location.href = 'checkout.php';
+    if (cartTotal <= 0) {
+        showNotification('Your cart is empty!', 'error');
+        return;
+    }
+    $('#paymentModal').modal('show');
+}
+
+// Payment functions
+function payWithCard() {
+    if (cartTotal <= 0) {
+        showNotification('Your cart is empty!', 'error');
+        return;
+    }
+
+    const email = document.getElementById('userEmail').value;
+    const tx_ref = Date.now().toString() + Math.floor(Math.random() * 1000); // Simple unique ref
+
+    FlutterwaveCheckout({
+        public_key: "FLWPUBK_TEST-ab0db75066081fdc2501e5eb2cf42da1-X",
+        tx_ref: tx_ref,
+        amount: cartTotal,
+        currency: "RWF",
+        payment_options: "card",
+        redirect_url: "https://your-website.com/redirect", // Replace with your actual redirect URL if needed
+        customer: {
+            email: email,
+        },
+        customizations: {
+            title: "Purchase Medicines",
+            description: "Payment for cart items",
+        },
+        callback: function (data) {
+            if (data.status === "successful") {
+                verifyCartPayment(data.transaction_id, 'card');
+            } else {
+                showNotification('Payment failed: ' + data.status, 'error');
+            }
+        },
+        onclose: function() {
+            // Optional: Handle modal close if needed
+        },
+    });
+}
+
+function payWithMobile() {
+    if (cartTotal <= 0) {
+        showNotification('Your cart is empty!', 'error');
+        return;
+    }
+
+    const email = document.getElementById('userEmail').value;
+    const tx_ref = Date.now().toString() + Math.floor(Math.random() * 1000); // Simple unique ref
+
+    FlutterwaveCheckout({
+        public_key: "FLWPUBK_TEST-ab0db75066081fdc2501e5eb2cf42da1-X",
+        tx_ref: tx_ref,
+        amount: cartTotal,
+        currency: "RWF",
+        payment_options: "mobilemoneyrwanda",
+        redirect_url: "https://your-website.com/redirect", // Replace with your actual redirect URL if needed
+        customer: {
+            email: email,
+        },
+        customizations: {
+            title: "Purchase Medicines",
+            description: "Payment for cart items",
+        },
+        callback: function (data) {
+            if (data.status === "successful") {
+                verifyCartPayment(data.transaction_id, 'mobile_money');
+            } else {
+                showNotification('Payment failed: ' + data.status, 'error');
+            }
+        },
+        onclose: function() {
+            // Optional: Handle modal close if needed
+        },
+    });
+}
+
+// Verify cart payment
+function verifyCartPayment(transaction_id, payment_method) {
+    $.ajax({
+        url: 'php_action/process_cart_payment.php',
+        method: 'POST',
+        data: {
+            payment_method: payment_method,
+            total_amount: cartTotal,
+            transaction_id: transaction_id
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                $('#paymentModal').modal('hide');
+                showNotification('Payment successful! Your order has been placed.', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                showNotification(response.message || 'Payment failed. Please try again.', 'error');
+            }
+        },
+        error: function() {
+            showNotification('An error occurred while processing payment', 'error');
+        }
+    });
 }
 
 function showNotification(message, type) {
