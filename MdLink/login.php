@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Midilink Rwanda - Login</title>
+    <title>Midlink Rwanda - Login</title>
     <!-- Login/Signup page with toggle functionality -->
     <link rel="stylesheet" href="assets/css/popup_style.css"> 
     <style>
